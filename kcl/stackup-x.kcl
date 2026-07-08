@@ -34,15 +34,20 @@ export locknutDia = 40
 export pistonWidth = 15
 
 // --- Derived stations: running sums from the front pin center ---
+// The piston sits at a FIXED station. The extension (slagforkorter) is
+// a sleeve in FRONT of the piston face: it subdivides the stroke zone
+// and reduces the effective stroke -- it does NOT lengthen the chain.
 export stationHead = rodEyeFront + headCap
-export stationPistonFace = stationHead + pistonZone + extension
-export stationGland = stationPistonFace + stroke
+export stationPiston = stationHead + pistonZone
+export stationExtension = stationPiston + extension // sleeve end (= piston when 0)
+export stationGland = stationPiston + stroke
 export stationRodExit = stationGland + glandLength + spacer
 export pinToPin = stationRodExit + rodEyeRear
 
 // --- Derived part dimensions: custom parts absorb the drivers ---
 export tubeLength = pistonZone + stroke + glandLength // = 305
 export rodLength = stroke + glandLength + spacer // = 253
+export effectiveStroke = stroke - extension // what the cylinder can actually travel
 
 // --- Closing dimension: computed once, never typed twice ---
 assert(pinToPin, isEqualTo = 442, error = "pin-to-pin drifted from spec (expected 442)")

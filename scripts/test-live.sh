@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end test of the live API: PASS -> FAIL (drift) -> PASS (restore).
+# Also exercises extension > 0 (slagforkorter), which must still PASS
+# because the extension subdivides the stroke zone without opening the chain.
 set -u
 URL=http://localhost:8092/api/commit
 
@@ -10,8 +12,9 @@ run() {
   echo
 }
 
-run '{"stroke":180,"extension":0,"spacer":23,"spec":442}'
-run '{"stroke":200,"extension":0,"spacer":23,"spec":442}'
-run '{"stroke":180,"extension":0,"spacer":23,"spec":442}'
+run '{"stroke":180,"extension":0,"spacer":23}'
+run '{"stroke":200,"extension":0,"spacer":23}'
+run '{"stroke":180,"extension":40,"spacer":23}'
+run '{"stroke":180,"extension":0,"spacer":23}'
 echo "=== metrics.jsonl ==="
-tail -n 3 "$(dirname "$0")/../artifacts/metrics.jsonl"
+tail -n 4 "$(dirname "$0")/../artifacts/metrics.jsonl"

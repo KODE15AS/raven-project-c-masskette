@@ -7,19 +7,22 @@
 // ============================================================
 @settings(defaultLengthUnit = mm)
 
-import stationPistonFace, stationGland, stationRodExit, glandLength, spacer, rodLength, rodEyeRear, pinToPin, pistonDia, pistonWidth, rodDia, locknutDia, eyeOuterDia, eyeHoleDia, eyeWidth, neckDia from "stackup-x.kcl"
+import stationPiston, stationGland, stationRodExit, glandLength, spacer, rodLength, rodEyeRear, pinToPin, pistonDia, pistonWidth, rodDia, locknutDia, eyeOuterDia, eyeHoleDia, eyeWidth, neckDia from "stackup-x.kcl"
 
-// Piston: face exactly on stationPistonFace (body extends backwards)
+// Piston: face exactly on stationPiston -- FIXED, does not move with
+// the extension (slagforkorter); the sleeve sits in front of the face.
 pistonSketch = startSketchOn(YZ)
   |> circle(center = [0, 0], radius = pistonDia / 2)
 piston = extrude(pistonSketch, length = pistonWidth)
-  |> translate(x = stationPistonFace - pistonWidth, global = true)
+  |> translate(x = stationPiston - pistonWidth, global = true)
 
-// Rod: from the piston face, length = rodLength (DERIVED, absorbs the drivers)
+// Rod: from the piston face, length = rodLength (DERIVED, absorbs the
+// drivers). The extension sleeve (slagforkorter) rides on this rod in
+// front of the piston face and only reduces the effective stroke.
 rodSketch = startSketchOn(YZ)
   |> circle(center = [0, 0], radius = rodDia / 2)
 rodBody = extrude(rodSketch, length = rodLength)
-  |> translate(x = stationPistonFace, global = true)
+  |> translate(x = stationPiston, global = true)
 
 // Locknut / spacer zone: the 23 (driver), from the gland end
 locknutSketch = startSketchOn(YZ)

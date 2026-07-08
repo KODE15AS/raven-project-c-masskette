@@ -39,7 +39,6 @@ LIMITS = {
     "stroke": (50, 400),
     "extension": (0, 400),
     "spacer": (0, 80),
-    "spec": (300, 1000),
 }
 DRIVER_RE = {
     "stroke": re.compile(r"(^export stroke = )(\d+)", re.M),
@@ -61,10 +60,11 @@ run_lock = threading.Lock()
 
 
 class CommitRequest(BaseModel):
+    """Only the three drivers are writable. The spec (closing assert)
+    is fixed in the KCL and pin-to-pin is always calculated."""
     stroke: int
     extension: int
     spacer: int
-    spec: int
 
 
 def now_iso() -> str:
@@ -90,7 +90,6 @@ def write_drivers(req: CommitRequest) -> None:
     text = DRIVER_RE["stroke"].sub(rf"\g<1>{req.stroke}", text)
     text = DRIVER_RE["extension"].sub(rf"\g<1>{req.extension}", text)
     text = DRIVER_RE["spacer"].sub(rf"\g<1>{req.spacer}", text)
-    text = SPEC_RE.sub(rf"\g<1>{req.spec}", text)
     STACKUP.write_text(text)
 
 
@@ -173,7 +172,7 @@ def api_state():
 
 @app.post("/api/commit")
 def api_commit(req: CommitRequest):
-    for key in ("stroke", "extension", "spacer", "spec"):
+    for key in ("stroke", "extension", "spacer"):
         lo, hi = LIMITS[key]
         val = getattr(req, key)
         if not lo <= val <= hi:
