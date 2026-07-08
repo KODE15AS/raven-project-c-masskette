@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoo Dev Contribution Spec Rev 1: KCL Model Dimension Syntax — dim::distance | Cadify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/docs/doc.css">
+</head>
+<body>
+<article class="sheet">
+
+<div class="dochead">
+  <img src="/cadify-logo.png" alt="Cadify">
+  <div class="meta">Rev 1 &middot; 2026-07-08<br>Zoo Dev Contribution Spec</div>
+</div>
+
+<h1>KCL Model Dimension Syntax — <code style="font-size:.85em">dim::distance</code></h1>
+<div class="byline">Zoo Dev Contribution Spec Rev 1 &middot; Cadify.no</div>
+
+<table>
+  <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>2026-06-09</td>
+        <td>Initial four-plane dimension model and <code>dim::distance</code>
+        syntax proposal.</td></tr>
+    <tr><td>1</td><td>2026-07-08</td>
+        <td>Restructured around the Maßkette (dimension chain) as the anchoring
+        concept, with two new illustrations. Measurement and presentation
+        separated into two functions. Return value defined. Plane-model
+        semantics made precise. Relationship to the existing <code>gdt::</code>
+        module resolved. All syntax aligned with current KCL 2.0.</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="no">1</span>Why this revision</h2>
+<p>Rev 0 established the right foundation: a dimension must be defined
+independently of any drawing, viewport, or output format, and it must be
+anchored to <strong>reference planes</strong>, not to model topology (edges,
+vertices, faces). Plane anchoring means a dimension survives complete
+re-modeling of the parts between its anchors.</p>
+<p>Two things drove this revision.</p>
+<p><strong>First, Rev 0 contradicted its own core principle.</strong> The
+introduction demanded view independence, but the proposed
+<code>dim::distance</code> call embedded presentation state —
+<code>displayPlane</code>, <code>fontSize</code>, <code>textOrientation</code>,
+<code>textPosition</code>, <code>level</code>, <code>show</code> — directly in
+the dimension definition. A dimension defined that way cannot appea
+differently in a 3D viewport and on an A3 sheet, which was the entire point.
+Rev 1 separates the two concerns: <code>dim::distance</code> defines the
+measurement; a new function, <code>dim::show</code>, defines the
+presentation.</p>
+<p><strong>Second, and more important: we found the argument that makes this
+proposal land.</strong> The dimension chain — the Maßkette — is the mental
+anchor of every mechanical engineer. It is how the total of an assembly is
+understood as the sum of its parts: catalog dimensions from standard
+components, derived dimensions from custom parametric parts, and one closing
+dimension that everything must add up to. Rev 1 is built on two illustrations
+of a hydraulic cylinder that show the Maßkette living natively in KCL — first
+in a single assembly, then across sub-assemblies. The
+<code>dim::distance</code> proposal is presented as what it really is:
+<strong>the last missing piece</strong> that turns this already-working
+discipline into the drawing.</p>
+
+<h2><span class="no">2</span>The Maßkette in KCL — one assembly</h2>
+<figure class="figure">
+  <img src="/figures/masskette-cadify.svg" alt="Figure 1: the executable stack-up">
+  <figcaption><b>Figure 1: The executable stack-up.</b> A hydraulic cylinder on
+  the X axis with its full dimension chain 51 + 12 + 75 + 0 + 180 + 50 + 23 +
+  51 = 442&nbsp;mm. Dash-dot lines are station planes — KCL
+  <code>Plane</code> objects derived from the chain's running sums
+  (stationHead = 63, stationPistonFace = 138, stationGland = 318,
+  stationRodExit = 391, pinToPin = 442). White dimensions are catalog inputs
+  from standard parts; yellow dimensions are design drivers and derived values.
+  The 442 is the closing dimension: computed once, never typed twice, asserted
+  on every compile. Across the top, the proposed <code>dim::distance</code>
+  measures between the first and last station planes — the annotation and the
+  audit are the same object.</figcaption>
+</figure>
+<p>Figure 1 shows the discipline this spec serves. The chain along the bottom
+is the classic engineering stack-up: each segment is owned either by a standard
+part (fixed, from a supplier catalog — shown white) or by the design (drivers
+and derived values — shown yellow). The running sums of the chain define
+stations, and each station becomes an ordinary KCL plane.</p>
+<p>Everything below the dimension line in Figure 1 works in KCL today, with no
+new functionality:</p>
+<ul>
+  <li>The chain is plain arithmetic in a parameters module — deterministic,
+      readable, auditable.</li>
+  <li>Stations become planes with the existing <code>offsetPlane</code>
+      function.</li>
+  <li>The closing dimension is enforced with the existing <code>assert</code>
+      function, re-verified on every compile.</li>
+</ul>
+<p>What does <em>not</em> exist today is the dimension drawn across the top of
+Figure 1: a dimension defined between two planes, carrying an evaluated value,
+displayable in any view. That is what <code>dim::distance</code> adds.</p>
+
+<h2><span class="no">3</span>The Maßkette across sub-assemblies</h2>
+<figure class="figure">
+  <img src="/figures/masskette-subassemblies-cadify.svg"
+       alt="Figure 2: the Masskette across sub-assemblies">
+  <figcaption><b>Figure 2: The same cylinder split into its two
+  sub-assemblies,</b> drawn on separate centerlines but aligned to one shared
+  station-plane grid. Sub-assembly 1 (<code>tube.kcl</code>): bottom eye,
+  endcap, tube, and head bush, with its internal chain 51 + 12 + tube, where
+  tube = 305 (= 75 + 180 + 50) is the derived dimension absorbing the drivers.
+  Sub-assembly 2 (<code>rod.kcl</code>): piston, rod, locknut, and top eye,
+  with rod = 253 (= 180 + 50 + 23) as its derived dimension, the piston face
+  sitting exactly on <code>stationPistonFace</code>. At the bottom, the
+  top-level master chain closes on the asserted 442 — across both
+  sub-assemblies.</figcaption>
+</figure>
+<p>Figure 2 is the payoff. The station planes run unbroken through both
+sub-assemblies and the master chain — because they belong to the stack-up, not
+to any part. This gives three properties no mate-based CAD assembly can
+offer:</p>
+<ol>
+  <li><strong>Isolation.</strong> Each sub-assembly is modeled in its own file,
+      compiles independently, and can be validated and signed off as a unit.
+      Nothing inside <code>tube.kcl</code> references anything inside
+      <code>rod.kcl</code>.</li>
+  <li><strong>Shared causality.</strong> The drivers (stroke 180, extension 0,
+      spacer 23) live once, in the stack-up module. Both sub-assemblies consume
+      them: the stroke appears inside tube = 305 and inside rod = 253.
+      Part-to-part mating cannot express a parameter that two sub-assemblies
+      jointly depend on; a shared chain expresses it in one line.</li>
+  <li><strong>A closing audit across the boundary.</strong> The master chain
+      closes on 442 across both sub-assemblies, and the assert catches any
+      drift — whether it comes from a catalog part revision in the tube or a
+      rod re-design.</li>
+</ol>
+<p>A dimension anchored to station planes inherits all three properties.
+Re-model any part between two stations — replace a supplier's head bush,
+regenerate the rod with Text-to-CAD — and the dimension neither moves no
+breaks.</p>
+
+<h2><span class="no">4</span>Scope</h2>
+<p class="status">This spec proposes <strong>new KCL standard-library
+functionality</strong>. It is not current Zoo syntax. It targets Zoo's public
+roadmap item <em>"Drawings &amp; GD&amp;T — production-ready 2D output"</em>
+and is intended as a contribution to the open-source KCL effort (KittyCAD
+<code>modeling-app</code>).</p>
+<p><strong>In scope:</strong> linear distance dimensions between parallel
+reference planes, their evaluated values, and their presentation in a display
+plane. <strong>Out of scope for Rev 1</strong> (see §11): angular, radial, and
+diametral dimensions; asymmetric tolerances and fits; chained/ordinate
+dimension groups; the DXF/PDF sheet-rendering pipeline.</p>
+
+<h2><span class="no">5</span>Design principles</h2>
+<ol>
+  <li><strong>View independence.</strong> A dimension is a fact about the
+      product, not about a drawing. Definition and presentation are separate
+      constructs.</li>
+  <li><strong>Plane anchoring.</strong> Dimensions attach to abstract
+      <code>Plane</code> objects — the station planes of Figures 1 and 2 —
+      never to topology.</li>
+  <li><strong>Executable value.</strong> Every dimension evaluates to a numbe
+      that can be asserted, exported, or reused. A dimension that cannot be
+      checked by <code>assert</code> is not finished.</li>
+  <li><strong>Native KCL style.</strong> Keyword arguments, unit-aware numbers,
+      namespaced module functions, the documented <code>Plane</code> type. No
+      new syntax forms — only new standard-library functions.</li>
+</ol>
+
+<h2><span class="no">6</span>The measurement model</h2>
+<p>A distance dimension is defined by three planes (Rev 0's fourth plane, the
+display plane, now belongs to presentation, §8):</p>
+<table>
+  <thead><tr><th>Plane</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td><code>stationStart</code></td>
+        <td>Reference plane where the measurement begins.</td></tr>
+    <tr><td><code>stationEnd</code></td>
+        <td>Reference plane where the measurement ends.</td></tr>
+    <tr><td><code>measurementPlane</code></td>
+        <td>(optional) Plane in which the distance is evaluated.</td></tr>
+  </tbody>
+</table>
+<p><strong>Semantics.</strong> <code>stationStart</code> and
+<code>stationEnd</code> must be parallel; if not, execution fails with an erro
+(consistent with <code>assert</code> behavior). The evaluated value is the
+perpendicular distance between the two station planes — the distance between
+their origins projected onto the shared normal. When
+<code>measurementPlane</code> is omitted it defaults to any plane containing
+that normal; it exists to make the measurement direction explicit when the
+station planes carry more orientation than the dimension needs.</p>
+<p>Station planes are ordinary KCL <code>Plane</code> values: standard planes
+(<code>XZ</code>), derived planes
+(<code>offsetPlane(YZ, offset = station)</code>), or custom planes
+(<code>{origin = ..., xAxis = ..., yAxis = ...}</code>). No new plane machinery
+is required.</p>
+
+<h2><span class="no">7</span>dim::distance — defining a measurement</h2>
+<pre><code>eyeCenterDistance = dim::distance(
+  name = <span class="s">"eyeCenterDistance"</span>,
+  label = <span class="s">"Eye center distance"</span>,
+  stationStart = leftEyeCenterPlane,
+  stationEnd = rightEyeCenterPlane,
+  measurementPlane = cylinderAxisPlane,
+  precision = 0,
+  tolerance = 1mm,
+)</code></pre>
+<table>
+  <thead><tr><th>Argument</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>string</td><td>Yes</td>
+        <td>Stable identifier for code, export, and PLM traceability.</td></tr>
+    <tr><td><code>label</code></td><td>string</td><td>No</td>
+        <td>Human-readable text. Defaults to <code>name</code>.</td></tr>
+    <tr><td><code>stationStart</code></td><td>Plane</td><td>Yes</td>
+        <td>Start reference plane.</td></tr>
+    <tr><td><code>stationEnd</code></td><td>Plane</td><td>Yes</td>
+        <td>End reference plane. Must be parallel to
+        <code>stationStart</code>.</td></tr>
+    <tr><td><code>measurementPlane</code></td><td>Plane</td><td>No</td>
+        <td>Plane in which the distance is evaluated (§6).</td></tr>
+    <tr><td><code>precision</code></td><td>number</td><td>No</td>
+        <td>Decimals shown when presented. Default per project
+        settings.</td></tr>
+    <tr><td><code>tolerance</code></td><td>number (Length)</td><td>No</td>
+        <td>Symmetric ± tolerance. Reserved for extension to asymmetric limits
+        and fits (§11).</td></tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong> <code>Dimension</code> — an object with at
+least:</p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>value</code></td><td>number (Length)</td>
+        <td>The evaluated distance, computed at execution time from the current
+        geometry.</td></tr>
+    <tr><td><code>name</code>, <code>label</code></td><td>string</td>
+        <td>As defined.</td></tr>
+    <tr><td><code>tolerance</code></td><td>number (Length)</td>
+        <td>As defined.</td></tr>
+  </tbody>
+</table>
+<p>Because <code>value</code> is a plain unit-aware number, dimensions compose
+with the rest of KCL:</p>
+<pre><code>assert(eyeCenterDistance.value, isEqualTo = 442mm, error = <span class="s">"pin-to-pin drifted from spec"</span>)</code></pre>
+<p class="callout">This is the property no GUI CAD system offers, and it is the
+headline of this proposal: <strong>the dimension on the released drawing and
+the checked dimension in the stack-up audit are the same object, re-verified on
+every compile.</strong> In Figure 1 this is the dimension across the top; in
+Figure 2 it is what closes the chain across two independently compiled
+sub-assemblies.</p>
+
+<h2><span class="no">8</span>dim::show — presenting a measurement</h2>
+<p>Presentation attaches to an existing <code>Dimension</code> and neve
+changes what is measured. The same dimension may be shown in several views with
+different styling, or not shown at all.</p>
+<pre><code>dim::show(
+  eyeCenterDistance,
+  displayPlane = XZ,
+  level = <span class="s">"outer"</span>,
+  textOrientation = <span class="s">"top"</span>,
+  textPosition = <span class="s">"inside"</span>,
+  fontSize = 10mm,
+)</code></pre>
+<table>
+  <thead><tr><th>Argument</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>(first, unlabeled)</td><td>Dimension</td><td>Yes</td>
+        <td>The dimension to display.</td></tr>
+    <tr><td><code>displayPlane</code></td><td>Plane</td><td>Yes</td>
+        <td>Plane onto which the annotation is projected and rendered.</td></tr>
+    <tr><td><code>level</code></td><td>string</td><td>No</td>
+        <td>Placement relative to the view bounding box: <code>"inner"</code> |
+        <code>"center"</code> | <code>"outer"</code>. Default
+        <code>"outer"</code>.</td></tr>
+    <tr><td><code>textOrientation</code></td><td>string</td><td>No</td>
+        <td><code>"top"</code> | <code>"right"</code> | <code>"bottom"</code> |
+        <code>"left"</code>. Default <code>"top"</code>.</td></tr>
+    <tr><td><code>textPosition</code></td><td>string</td><td>No</td>
+        <td>Along the dimension line: <code>"before"</code> |
+        <code>"inside"</code> | <code>"after"</code>. Default
+        <code>"inside"</code>.</td></tr>
+    <tr><td><code>fontSize</code></td><td>number (Length)</td><td>No</td>
+        <td>Text size in model units. Default per project settings.</td></tr>
+  </tbody>
+</table>
+<p>Rev 0's <code>show = true/false</code> flag is removed: a dimension is
+displayed if and only if <code>dim::show</code> is called for it. Suppression
+in a given view is the absence of a <code>dim::show</code> call — consistent
+with KCL's declarative style, where geometry exists because code declares
+it.</p>
+<p>The unlabeled first parameter follows the standard-library convention (as in
+<code>assert</code>, <code>translate</code>, <code>extrude</code>) and supports
+pipelines:</p>
+<pre><code>dim::distance(name = <span class="s">"stroke"</span>, stationStart = pistonFacePlane, stationEnd = glandPlane)
+  |&gt; dim::show(displayPlane = XZ, level = <span class="s">"center"</span>)</code></pre>
+
+<h2><span class="no">9</span>Worked example — the code behind Figures 1 and 2</h2>
+<p>The stack-up module is the master. It contains the catalog inputs, the
+design drivers, the derived stations, and the asserted closing dimension —
+exactly the ledger drawn in Figure 1.</p>
+<pre><code><span class="c">// ── stackup-x.kcl ──────────────────────────────────────</span>
+@settings(kclVersion = 2.0)
+
+<span class="c">// Catalog inputs (standard parts) — white in Figures 1 and 2</span>
+<span class="k">export</span> rodEyeFront = 51mm
+<span class="k">export</span> headCap = 12mm
+<span class="k">export</span> pistonZone = 75mm
+<span class="k">export</span> glandLength = 50mm
+<span class="k">export</span> rodEyeRear = 51mm
+
+<span class="c">// Design drivers — yellow in Figures 1 and 2</span>
+<span class="k">export</span> stroke = 180mm
+<span class="k">export</span> extension = 0mm <span class="c">// current state: retracted</span>
+<span class="k">export</span> spacer = 23mm
+
+<span class="c">// Derived stations (running datum from front pin center)</span>
+<span class="k">export</span> stationHead = rodEyeFront + headCap
+<span class="k">export</span> stationPistonFace = stationHead + pistonZone + extension
+<span class="k">export</span> stationGland = stationPistonFace + stroke
+<span class="k">export</span> stationRodExit = stationGland + glandLength + space
+<span class="k">export</span> pinToPin = stationRodExit + rodEyeRea
+
+<span class="c">// Derived sub-assembly dimensions — the yellow boxes in Figure 2</span>
+<span class="k">export</span> tubeLength = pistonZone + stroke + glandLength <span class="c">// = 305mm</span>
+<span class="k">export</span> rodLength = stroke + glandLength + spacer <span class="c">// = 253mm</span>
+
+<span class="c">// Closing dimension: computed once, never typed twice</span>
+assert(pinToPin, isEqualTo = 442mm, error = <span class="s">"pin-to-pin drifted from spec"</span>)</code></pre>
+<p>The top-level assembly derives the station planes, imports the
+sub-assemblies of Figure 2, and defines the governing dimension:</p>
+<pre><code><span class="c">// ── main.kcl ───────────────────────────────────────────</span>
+@settings(kclVersion = 2.0)
+<span class="k">import</span> stationPistonFace, stationGland, pinToPin <span class="k">from</span> <span class="s">"stackup-x.kcl"</span>
+
+<span class="c">// Station planes: ordinary KCL planes derived from the chain</span>
+leftEyeCenterPlane = offsetPlane(YZ, offset = 0)
+pistonFacePlane = offsetPlane(YZ, offset = stationPistonFace)
+rightEyeCenterPlane = offsetPlane(YZ, offset = pinToPin)
+
+<span class="c">// Sub-assemblies compile in isolation (Figure 2) and</span>
+<span class="c">// receive their positions from the shared stations</span>
+<span class="k">import</span> <span class="s">"tube.kcl"</span> <span class="k">as</span> tube
+<span class="k">import</span> <span class="s">"rod.kcl"</span> <span class="k">as</span> rod
+
+<span class="c">// The governing dimension — anchored to stations, not to any part</span>
+eyeCenterDistance = dim::distance(
+  name = <span class="s">"eyeCenterDistance"</span>,
+  label = <span class="s">"Eye center distance"</span>,
+  stationStart = leftEyeCenterPlane,
+  stationEnd = rightEyeCenterPlane,
+  precision = 0,
+  tolerance = 1mm,
+)
+
+<span class="c">// The annotation and the audit are the same object</span>
+assert(eyeCenterDistance.value, isEqualTo = pinToPin)
+
+<span class="c">// Present it — once per view that needs it</span>
+dim::show(
+  eyeCenterDistance,
+  displayPlane = XZ,
+  level = <span class="s">"outer"</span>,
+  textOrientation = <span class="s">"top"</span>,
+  textPosition = <span class="s">"inside"</span>,
+  fontSize = 10mm,
+)</code></pre>
+<p>Any part between the eyes can be re-modeled, replaced by a different
+supplier's catalog component, or regenerated by Text-to-CAD — the dimension
+neither moves nor breaks, because it references stations, not topology.</p>
+
+<h2><span class="no">10</span>Relationship to the existing gdt:: module</h2>
+<p>Zoo already ships a <code>gdt</code> module for model-based definition
+(<code>gdt::datum</code>, <code>gdt::flatness</code>,
+<code>gdt::position</code>, ...). We propose <code>dim::</code> as a separate
+namespace with a clear division of labor:</p>
+<ul>
+  <li><strong><code>gdt::</code></strong> — tolerancing and datum callouts
+      attached to model geometry (faces), per MBD practice.</li>
+  <li><strong><code>dim::</code></strong> — basic dimensions attached to
+      abstract reference planes, independent of geometry, with evaluated
+      values.</li>
+</ul>
+<p>The rationale is the anchoring model: <code>gdt::</code> functions take
+faces and therefore depend on topology; <code>dim::</code> deliberately does
+not. If Zoo's maintainers prefer to host this functionality inside
+<code>gdt::</code>, the design transfers unchanged — the separation of
+measurement (<code>distance</code>) from presentation (<code>show</code>) and
+the evaluated <code>.value</code> field are the substance of this proposal, not
+the namespace.</p>
+
+<h2><span class="no">11</span>Out of scope / future revisions</h2>
+<ul>
+  <li><strong>Asymmetric tolerances and fits.</strong> <code>tolerance</code>
+      accepts a symmetric length in Rev 1. A future revision extends it to
+      plus/minus limits and ISO fit designations without breaking the symmetric
+      form.</li>
+  <li><strong>Other dimension types.</strong> <code>dim::angle</code>,
+      <code>dim::radius</code>, <code>dim::diameter</code>, following the same
+      measurement/presentation split.</li>
+  <li><strong>Chained and ordinate dimension groups.</strong> A
+      <code>dim::chain([...])</code> construct that renders a full Maßkette —
+      the bottom rows of Figures 1 and 2, with a designated closing dimension —
+      as one drawing element. This is the natural second step once
+      <code>dim::distance</code> exists, and the direct path to the "Minimum
+      Viable Drawing."</li>
+  <li><strong>Sheet rendering.</strong> Projection of <code>dim::show</code>
+      output to DXF/PDF drawing sheets belongs to Zoo's Drawings roadmap item;
+      this spec defines only what such a renderer consumes.</li>
+</ul>
+
+<h2><span class="no">12</span>Proposed implementation path</h2>
+<p>Two independent pull requests, smallest first:</p>
+<ol>
+  <li><strong>Measurement core</strong> — <code>dim::distance</code> returning
+      a <code>Dimension</code> with <code>.value</code>, plus the
+      parallel-planes validation. No rendering; immediately useful for stack-up
+      auditing via <code>assert</code>, as in §9.</li>
+  <li><strong>Presentation</strong> — <code>dim::show</code> rendering in the
+      viewport, with DXF/sheet output following Zoo's Drawings &amp; GD&amp;T
+      work.</li>
+</ol>
+<p>Companion document: <a href="/docs/best-practice.html" target="_blank"
+rel="noopener">Best Practice: Executable Stack-Ups (Maßkette) in KCL — Rev
+1</a></p>
+
+<div class="docfoot">
+  Rakkestad, Norway &middot; 2026-07-08 &middot; Jørn Watvedt
+  <span class="brand">cadify.no &middot; c/o KODE15 AS</span>
+</div>
+
+</article>
+</body>
+</html>

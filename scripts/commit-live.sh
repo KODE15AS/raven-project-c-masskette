@@ -2,18 +2,19 @@
 set -eu
 cd "$(dirname "$0")/.."
 git add -A
-git commit -m "Rework drivers per review: effectiveStroke is the customer input, pin-to-pin is pure output
+git commit -m "Slagforkorter rebalances inside a fixed stroke zone; add Cadify-branded reference documents
 
-- The customer picks effectiveStroke (yellow box in the chain); the
-  physical stroke zone = effectiveStroke + extension is derived and
-  reported in the side panel, not typed anywhere.
-- When extension > 0 both extension and effective stroke get yellow
-  editable boxes in the chain row.
-- The audit no longer asserts a fixed pin-to-pin total: it fails on
-  internal contradictions (segment overlap, tube/head-bush mismatch).
-  The stale 'spec 442' error is gone.
-- New station planes drawn and exported: end cap and head bush.
-- Demo button is now 'Force overlap' (effectiveStroke -> 0)." \
+- Editing extension now SHORTENS effectiveStroke inside a constant
+  stroke zone, so calculated pin-to-pin does not move. Editing
+  effective stroke is the customer asking for more travel and moves
+  the pin. Force-overlap demo fills the zone with the sleeve.
+- Two reference documents served at /docs as professionally formatted
+  HTML (Cadify logo, Montserrat, print-friendly): the Best Practice
+  Rev 1 paper and the dim::distance contribution spec Rev 1, both
+  reformatted from the PDFs with figures inline. Linked from a new
+  footer on the main page (open in new tab).
+- Dockerfile.live: chmod a+rX /app so static docs are readable by the
+  non-root uid (fixes 401 from StaticFiles)." \
   --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>"
 git push origin main
 git log --oneline -3

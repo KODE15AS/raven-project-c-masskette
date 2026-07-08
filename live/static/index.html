@@ -127,7 +127,7 @@
       </div>
       <div class="btnrow">
         <button class="primary" id="btnCommit">COMMIT &rarr; RUN AUDIT</button>
-        <button class="ghost" id="btnBreak">Force overlap (effective stroke &rarr; 0)</button>
+        <button class="ghost" id="btnBreak">Force overlap (sleeve fills stroke zone)</button>
         <button class="ghost" id="btnRestore">Restore baseline</button>
         <span id="unverified">&#9650; UNVERIFIED &mdash; local arithmetic only, commit to audit</span>
       </div>
@@ -164,6 +164,18 @@
     </div>
   </section>
 </main>
+
+<footer style="max-width:1500px;margin:0 auto;padding:0 26px 30px;display:flex;
+               gap:14px;flex-wrap:wrap;align-items:center">
+  <span style="font-size:11px;letter-spacing:1.6px;color:var(--dim);
+               text-transform:uppercase">Reference documents</span>
+  <a href="/docs/best-practice.html" target="_blank" rel="noopener"
+     style="text-decoration:none"><button class="ghost">Best Practice:
+     Executable Stack-Ups (Ma&szlig;kette) in KCL &mdash; Rev 1</button></a>
+  <a href="/docs/dimension-syntax.html" target="_blank" rel="noopener"
+     style="text-decoration:none"><button class="ghost">Zoo Dev Contribution
+     Spec: KCL Model Dimension Syntax dim::distance &mdash; Rev 1</button></a>
+</footer>
 
 <script>
 const CAT = {rodEyeFront:51, headCap:12, pistonZone:75, glandLength:50, rodEyeRear:51};
@@ -352,13 +364,23 @@ window.addEventListener('resize', placeOverlays);
 function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 function setDriver(key, val){
   const lim = LIM[key];
-  state[key] = clamp(isNaN(val) ? lim[0] : val, lim[0], lim[1]);
+  const v = clamp(isNaN(val) ? lim[0] : val, lim[0], lim[1]);
+  if (key === 'extension'){
+    // The slagforkorter SHORTENS the effective stroke inside a fixed
+    // physical stroke zone -- pin-to-pin must not move.
+    const total = state.effectiveStroke + state.extension;
+    state.extension = Math.min(v, total);
+    state.effectiveStroke = total - state.extension;
+  } else {
+    state[key] = v;
+  }
   syncControls(); renderFigure(); updateBadge();
 }
 function syncControls(){
   const c = chain(state);
   $('sEff').value = state.effectiveStroke;
   $('vEff').textContent = state.effectiveStroke;
+  $('sExtension').max = state.effectiveStroke + state.extension;
   $('sExtension').value = state.extension;
   $('vExtension').textContent = state.extension;
   $('sSpacer').value = state.spacer;
@@ -466,7 +488,8 @@ function spark(vals){
 /* ---------- demo buttons ---------- */
 $('btnCommit').addEventListener('click', commit);
 $('btnBreak').addEventListener('click', () => {
-  setDriver('effectiveStroke', 0); commit();
+  // sleeve fills the whole stroke zone -> effective stroke 0 -> overlap
+  setDriver('extension', state.effectiveStroke + state.extension); commit();
 });
 $('btnRestore').addEventListener('click', () => {
   state = {effectiveStroke:180, extension:0, spacer:23};

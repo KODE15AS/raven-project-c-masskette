@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best Practice: Executable Stack-Ups (Maßkette) in KCL — Rev 1 | Cadify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/docs/doc.css">
+</head>
+<body>
+<article class="sheet">
+
+<div class="dochead">
+  <img src="/cadify-logo.png" alt="Cadify">
+  <div class="meta">Rev 1 &middot; 2026-07-08<br>Best Practice &middot; KCL 2.0</div>
+</div>
+
+<h1>Best Practice: Executable Stack-Ups (Maßkette) in KCL</h1>
+<div class="byline">By Jørn Watvedt, owner of Cadify.no</div>
+
+<h2><span class="no">1</span>The engineer's anchor: the dimension chain</h2>
+<p>Every mechanical engineer carries the same mental model into an assembly:
+the stack-up, or <strong>Maßkette</strong> — the chain of dimensions that adds
+up, segment by segment, to the total of the machine. Not primarily as tolerance
+analysis, but as the fundamental bookkeeping of design: <em>this part
+contributes 51&nbsp;mm, that one 12, the stroke adds 180, and it all must close
+on 442.</em></p>
+<ul>
+  <li>Standard parts contribute fixed catalog dimensions.</li>
+  <li>Custom parametric parts absorb the variation.</li>
+  <li>One closing dimension ties the whole thing together — and when the design
+      changes, the chain is the first thing a reviewing engineer checks.</li>
+</ul>
+<p>Traditional GUI CAD systems respect this model poorly. The chain lives half
+in the modeler's hidden equation tables and half in an Excel sheet beside the
+CAD, silently drifting out of sync with the geometry. Parts are positioned by
+mating them to other parts, in fragile chains where the causality — which
+dimension drives which — is invisible.</p>
+<p>This paper describes a best practice for making the Maßkette the
+<strong>executable master</strong> of a design in KCL, the parametric CAD
+language of Zoo Design Studio. Everything in sections 2–5 runs in current
+KCL&nbsp;2.0 today, with no new functionality. Section 6 adds one clearly
+marked proposed extension — plane-anchored dimensions — that turns the audited
+chain into the drawing.</p>
+<p>The method is demonstrated on a hydraulic cylinder throughout, in two
+figures: first as a single assembly, then split across sub-assemblies.</p>
+
+<h2><span class="no">2</span>The Maßkette as executable code</h2>
+<figure class="figure">
+  <img src="/figures/masskette-cadify.svg" alt="Figure 1: the executable stack-up">
+  <figcaption><b>Figure 1: The executable stack-up.</b> A hydraulic cylinder on
+  the X axis with its dimension chain 51 + 12 + 75 + 0 + 180 + 50 + 23 + 51 =
+  442&nbsp;mm. White dimensions are catalog inputs from standard parts; yellow
+  dimensions are design drivers and derived values. The running sums of the
+  chain define stations, and each station becomes a KCL plane (dash-dot lines).
+  The 442 is the closing dimension: computed once, never typed twice, asserted
+  on every compile. The dimension across the top is the proposed
+  <code>dim::distance</code> of section 6.</figcaption>
+</figure>
+<p>Read Figure 1 from the bottom up, because that is the order in which the
+design is actually built:</p>
+<ul>
+  <li><strong>The chain is the master.</strong> Each segment is owned either by
+      a standard part (fixed, from a supplier catalog — white) or by the design
+      itself (drivers such as the stroke, and derived values — yellow).</li>
+  <li><strong>The stations are the running sums</strong> of the chain: 0, 51,
+      63, 138, 318, 368, 391, 442. Each named station becomes an ordinary KCL
+      plane.</li>
+  <li><strong>The geometry hangs off the stations.</strong> Parts and
+      sub-assemblies are positioned on station planes — never on each
+      other.</li>
+  <li><strong>The closing dimension</strong> (442) is computed from the chain
+      and checked by an <code>assert</code>. If any segment drifts, the model
+      stops compiling and tells you which requirement broke.</li>
+</ul>
+<p>In code, the entire chain is one small module. This is the heart of the
+practice:</p>
+<pre><code><span class="c">// ── stackup-x.kcl ── the X-axis Maßkette, and nothing else ──</span>
+@settings(kclVersion = 2.0)
+
+<span class="c">// Catalog inputs (standard parts) — white in Figure 1</span>
+<span class="k">export</span> rodEyeFront = 51mm
+<span class="k">export</span> headCap = 12mm
+<span class="k">export</span> pistonZone = 75mm
+<span class="k">export</span> glandLength = 50mm
+<span class="k">export</span> rodEyeRear = 51mm
+
+<span class="c">// Design drivers — yellow in Figure 1</span>
+<span class="k">export</span> stroke = 180mm
+<span class="k">export</span> extension = 0mm <span class="c">// current state: retracted</span>
+<span class="k">export</span> spacer = 23mm
+
+<span class="c">// Derived stations: running sums from the front pin center</span>
+<span class="k">export</span> stationHead = rodEyeFront + headCap
+<span class="k">export</span> stationPistonFace = stationHead + pistonZone + extension
+<span class="k">export</span> stationGland = stationPistonFace + stroke
+<span class="k">export</span> stationRodExit = stationGland + glandLength + space
+<span class="k">export</span> pinToPin = stationRodExit + rodEyeRea
+
+<span class="c">// Derived part dimensions: the custom parts absorb the drivers</span>
+<span class="k">export</span> tubeLength = pistonZone + stroke + glandLength <span class="c">// = 305mm</span>
+<span class="k">export</span> rodLength = stroke + glandLength + spacer <span class="c">// = 253mm</span>
+
+<span class="c">// Closing dimension: computed once, never typed twice</span>
+assert(pinToPin, isEqualTo = 442mm, error = <span class="s">"pin-to-pin drifted from spec"</span>)</code></pre>
+<p>Two properties of this module deserve emphasis, because no GUI CAD system
+offers either.</p>
+<p><strong>First, the stack-up is re-audited on every compile:</strong> the
+<code>assert</code> is not documentation, it is enforcement.</p>
+<p><strong>Second, causality is readable in the file:</strong> a reviewer sees
+at a glance which numbers are supplier facts, which are design decisions, and
+which are consequences. That is precisely what a signing engineer needs to
+verify, presented in the format they already think in.</p>
+
+<h2><span class="no">3</span>Conventions</h2>
+<p>The practice depends on a handful of hard conventions. They are deliberately
+strict — a design that follows them can be navigated, reviewed, and safely
+modified by any engineer or AI assistant without further explanation.</p>
+<ul>
+  <li><strong>One stack-up module per axis</strong>, named
+      <code>stackup-x.kcl</code>, <code>stackup-y.kcl</code>,
+      <code>stackup-z.kcl</code>. The module contains parameters, derived
+      values, and asserts — never geometry.</li>
+  <li><strong>Order within the module is fixed:</strong> catalog inputs first,
+      then design drivers, then derived stations, then derived part dimensions,
+      then asserts. The file reads as the chain reads.</li>
+  <li><strong>Stations are named with the <code>station</code> prefix</strong>
+      (<code>stationGland</code>, <code>stationPistonFace</code>), in
+      camelCase, and are always running sums from a single, stated datum (here:
+      the front pin center at station 0).</li>
+  <li><strong>Every total is derived, never typed.</strong> A number that can
+      be computed from the chain must be computed from the chain. The closing
+      dimension appears as a literal exactly once — inside its
+      <code>assert</code>.</li>
+  <li><strong>The chain is plain arithmetic.</strong> Never place chain values
+      inside sketch-solve <code>var</code> initial guesses (KCL requires
+      guesses to be literals in any case); fixed values belong in constraint
+      arguments, and architectural values belong in the stack-up module. The
+      Maßkette must stay deterministic — that is its purpose.</li>
+  <li><strong>Parts reference stations, never each other.</strong> If you find
+      yourself measuring one part to position another, the missing station
+      belongs in the stack-up module.</li>
+</ul>
+
+<h2><span class="no">4</span>Stations become planes; sub-assemblies mount on stations</h2>
+<p>The stations turn into geometry anchors with one existing function. In the
+top-level assembly:</p>
+<pre><code><span class="c">// ── main.kcl ─────────────────────────────────────────────</span>
+@settings(kclVersion = 2.0)
+<span class="k">import</span> stationPistonFace, stationGland, pinToPin <span class="k">from</span> <span class="s">"stackup-x.kcl"</span>
+
+leftEyeCenterPlane = offsetPlane(YZ, offset = 0)
+pistonFacePlane = offsetPlane(YZ, offset = stationPistonFace)
+glandPlane = offsetPlane(YZ, offset = stationGland)
+rightEyeCenterPlane = offsetPlane(YZ, offset = pinToPin)
+
+<span class="c">// Sub-assemblies compile in isolation and mount on stations</span>
+<span class="k">import</span> <span class="s">"tube.kcl"</span> <span class="k">as</span> tube
+<span class="k">import</span> <span class="s">"rod.kcl"</span> <span class="k">as</span> rod</code></pre>
+<p>Each sub-assembly is its own file, consuming the same stack-up module fo
+the dimensions it owns. This is where the practice pays off.</p>
+<figure class="figure">
+  <img src="/figures/masskette-subassemblies-cadify.svg"
+       alt="Figure 2: the Masskette across sub-assemblies">
+  <figcaption><b>Figure 2: The same cylinder split into its two
+  sub-assemblies,</b> drawn on separate centerlines but aligned to one shared
+  station-plane grid. Sub-assembly 1 (<code>tube.kcl</code>) — bottom eye,
+  endcap, tube, head bush — owns the internal chain 51 + 12 + tube, where tube
+  = 305 (= 75 + 180 + 50) is the derived dimension absorbing the drivers.
+  Sub-assembly 2 (<code>rod.kcl</code>) — piston, rod, locknut, top eye — owns
+  rod = 253 (= 180 + 50 + 23), its piston face sitting exactly on
+  <code>stationPistonFace</code>. The master chain closes on the asserted 442,
+  across both sub-assemblies.</figcaption>
+</figure>
+<p>Figure 2 shows three properties that part-to-part mating cannot express:</p>
+<ol>
+  <li><strong>Isolation.</strong> Each sub-assembly is modeled in its own file
+      and compiles independently — Zoo executes modules in parallel — and can
+      be validated and signed off as a unit. Nothing inside
+      <code>tube.kcl</code> references anything inside <code>rod.kcl</code>.
+      Once signed off, a sub-assembly is a trusted black box; only its stations
+      matter to the outside.</li>
+  <li><strong>Shared causality.</strong> The drivers live once, in
+      <code>stackup-x.kcl</code>, and both sub-assemblies consume them: the
+      stroke appears inside tube = 305 and inside rod = 253. A parameter that
+      two sub-assemblies jointly depend on is one line in the stack-up module —
+      mating cannot say that at all.</li>
+  <li><strong>A closing audit across the boundary.</strong> The master chain
+      closes on 442 across both sub-assemblies. Whether drift comes from a
+      supplier revising the head bush or an engineer re-designing the rod, the
+      assert catches it at compile time, before it reaches a drawing or a
+      purchase order.</li>
+</ol>
+<p class="callout">Change the stroke from 180 to 200 and watch the practice
+work: both yellow derived dimensions re-derive (tube = 325, rod = 273), every
+station beyond the piston face moves, both sub-assemblies rebuild in their new
+positions — and the closing assert fails loudly until the specification is
+consciously updated. <strong>That failure is not an inconvenience; it is the
+design review.</strong></p>
+
+<h2><span class="no">5</span>What this replaces</h2>
+<p>In a mate-based assembly, the cylinder above would be built as a chain of
+constraints: eye mated to cap, cap to tube, tube to gland, gland to rod. Each
+mate is locally reasonable; collectively they hide the architecture. The
+wheelbase question — <em>"what adds up to 442, and who owns each
+contribution?"</em> — has no home in the model and migrates to a
+spreadsheet.</p>
+<p>In the stack-up practice, that question <em>is</em> the model. The chain is
+version-controlled text, diffable in git, reviewable line by line. The stations
+are the single source of positional truth. And because the whole arrangement is
+deterministic arithmetic — no solver, no constraint ordering — the same inputs
+produce the same machine, every time, which is what "sign-off" is supposed to
+mean.</p>
+
+<h2><span class="no">6</span>From audited chain to drawing: dim::distance (proposed syntax)</h2>
+<p class="status"><strong>Status note.</strong> Everything above this section
+is current, working KCL&nbsp;2.0. This section uses <em>proposed</em>
+standard-library functionality — <code>dim::distance</code> and
+<code>dim::show</code> — specified in the companion document
+<a href="/docs/dimension-syntax.html" target="_blank" rel="noopener">"KCL Model
+Dimension Syntax Rev 1"</a> (Cadify, 2026-07-08) and offered as an open-source
+contribution toward Zoo's roadmap item "Drawings &amp; GD&amp;T." It does not
+run in Zoo Design Studio today, and AI assistants applying this paper should
+not emit it into production models until it ships.</p>
+<p>The chain in <code>stackup-x.kcl</code> is the audit; the stack-up drawing —
+the printable, signable sheet of Figure 1 — is still manual. The missing
+primitive is a dimension that is anchored to station planes rather than to
+model topology:</p>
+<pre><code>eyeCenterDistance = dim::distance(
+  name = <span class="s">"eyeCenterDistance"</span>,
+  label = <span class="s">"Eye center distance"</span>,
+  stationStart = leftEyeCenterPlane,
+  stationEnd = rightEyeCenterPlane,
+  precision = 0,
+  tolerance = 1mm,
+)
+
+<span class="c">// The annotation and the audit are the same object</span>
+assert(eyeCenterDistance.value, isEqualTo = pinToPin)
+
+<span class="c">// Presentation is separate from measurement — per view, restyled freely</span>
+dim::show(
+  eyeCenterDistance,
+  displayPlane = XZ,
+  level = <span class="s">"outer"</span>,
+  textOrientation = <span class="s">"top"</span>,
+  textPosition = <span class="s">"inside"</span>,
+  fontSize = 10mm,
+)</code></pre>
+<p>Two design decisions matter. <strong>The dimension returns its evaluated
+value</strong>, so the number shown on the released drawing and the numbe
+checked against the stack-up are the same object — re-verified on every
+compile. And <strong>the dimension anchors to planes, not topology</strong>:
+re-model any part between two stations, replace a supplier component,
+regenerate a part with Text-to-CAD, and the dimension neither moves nor breaks.
+It inherits the black-box property of Figure 2's sub-assemblies at the
+annotation level.</p>
+<p>With this primitive, the bottom rows of Figures 1 and 2 stop being
+illustrations and become output: the Maßkette rendered from the model itself,
+exportable to DXF or PDF on a standard sheet — the executable paper trail,
+closed end to end. Until it ships, the practice of sections 2–5 already
+delivers the audit; the drawing is produced conventionally from the same
+numbers.</p>
+
+<h2><span class="no">7</span>Adoption checklist</h2>
+<p>To apply this practice to a new design in Zoo Design Studio:</p>
+<ol>
+  <li>Identify the principal axes and write one
+      <code>stackup-&lt;axis&gt;.kcl</code> per axis, in the fixed order of
+      section 3, with the closing dimension asserted.</li>
+  <li>Derive station planes in <code>main.kcl</code> with
+      <code>offsetPlane</code>, one per named station.</li>
+  <li>Give each sub-assembly its own file; import shared dimensions from the
+      stack-up module; mount everything on stations.</li>
+  <li>Add an <code>assert</code> for every dimension a reviewer would check by
+      hand — closing dimensions, critical clearances, interface
+      positions.</li>
+  <li>Keep the project in git. The stack-up module's diff is the engineering
+      change note.</li>
+</ol>
+<p>The result is a design in which the document engineers already trust — the
+stack-up — is no longer a description of the model. <strong>It is the
+model.</strong></p>
+<p>Companion document: <a href="/docs/dimension-syntax.html" target="_blank"
+rel="noopener">Zoo Dev Contribution Spec Rev 1: KCL Model Dimension Syntax —
+dim::distance</a></p>
+
+<div class="docfoot">
+  Rev 1 &middot; 2026-07-08 &middot; Rakkestad, Norway
+  <span class="brand">cadify.no &middot; c/o KODE15 AS</span>
+</div>
+
+</article>
+</body>
+</html>

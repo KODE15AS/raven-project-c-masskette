@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir "fastapi>=0.111" "uvicorn>=0.30" \
 WORKDIR /app
 COPY live/main.py /app/main.py
 COPY live/static /app/static
+# COPY preserves host modes; the container runs as uid 1000, so make
+# sure everything under /app is world-readable
+RUN chmod -R a+rX /app
 
 EXPOSE 8080
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
