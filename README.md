@@ -22,12 +22,30 @@ kcl/
   rod.kcl          # SUB-ASSY 2: piston, rod (253, derived), locknut, top eye
   main.kcl         # top-level assembly: imports both, closing assert
 scripts/verify.sh  # the executable audit: zoo kcl export; asserts gate the build
-docker-compose.yml # services: verify (on demand), web (status page :8091)
+docker-compose.yml # services: verify (on demand), web (:8091), live (:8092)
 Dockerfile.verify  # alpine + Zoo CLI (pinned, checksum-verified)
+Dockerfile.live    # python + Zoo CLI: FastAPI backend for the live demo
+live/              # Cadify Maßkette Live: interactive figure, lamps, metrics
 web/               # status page: PASS/FAIL badge, chain, figures, log
-docs/figures/      # Maßkette illustrations (Rev 1)
-artifacts/         # verify-report.json, verify-last.log, exported STEP
+docs/figures/      # Maßkette illustrations (Rev 1 + Cadify-branded Rev 2)
+artifacts/         # verify-report.json, live-report.json, metrics.jsonl, STEP
 ```
+
+## Cadify Maßkette Live (interactive demo, :8092)
+
+```bash
+docker compose up -d --build live    # -> http://<raven>:8092/
+```
+
+Figure 1 rendered live in the browser; the yellow driver boxes (stroke,
+extension, spacer) are editable, synced with sliders. Local arithmetic updates
+instantly and is marked **UNVERIFIED** until *Commit → run audit* writes the
+drivers into `kcl/stackup-x.kcl` and compiles the whole project via the Zoo
+API. Three status lamps (FILE / ENGINE / AUDIT), engine latency + retry
+metrics, Zoo API call ID, run history (`artifacts/metrics.jsonl`) and the raw
+verification log make the round trip transparent. "Break the spec" sets
+stroke to 200 so the closing assert fails on api.zoo.dev — the audit verdict
+is the demo.
 
 ## How to start / stop
 

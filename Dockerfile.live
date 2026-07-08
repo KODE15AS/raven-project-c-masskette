@@ -1,0 +1,20 @@
+FROM python:3.12-alpine
+
+# Zoo CLI (static musl binary) — same pinned release as the verify image
+ARG ZOO_CLI_VERSION=v0.2.178
+ARG ZOO_CLI_SHA256=238a99e9f65ec0a52396a9247d5b2645b511a3abb4ad26096b48acff0a0e60f1
+
+RUN apk add --no-cache ca-certificates curl \
+    && curl -fSL "https://dl.zoo.dev/releases/cli/${ZOO_CLI_VERSION}/zoo-x86_64-unknown-linux-musl" -o /usr/local/bin/zoo \
+    && echo "${ZOO_CLI_SHA256}  /usr/local/bin/zoo" | sha256sum -c - \
+    && chmod a+x /usr/local/bin/zoo
+
+RUN pip install --no-cache-dir "fastapi>=0.111" "uvicorn>=0.30" \
+    && mkdir -p /app && chmod 777 /app
+
+WORKDIR /app
+COPY live/main.py /app/main.py
+COPY live/static /app/static
+
+EXPOSE 8080
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

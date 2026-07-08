@@ -14,6 +14,28 @@ services:
     labels:
       raven.project: "c-masskette"
 
+  # Cadify Masskette Live — interactive demo on Tailscale: http://<raven>:8092/
+  # FastAPI + zoo CLI in one image; writes drivers into kcl/stackup-x.kcl,
+  # compiles via the Zoo API and reports assert verdict + latency metrics.
+  live:
+    build:
+      context: .
+      dockerfile: Dockerfile.live
+    image: raven-project-c-masskette/live:latest
+    user: "1000:1000"
+    env_file: .env            # ZOO_API_TOKEN=...
+    environment:
+      HOME: /tmp
+    ports:
+      - "8092:8080"
+    volumes:
+      - ./kcl:/work/kcl
+      - ./artifacts:/work/artifacts
+      - ./docs/figures:/work/figures:ro
+    restart: unless-stopped
+    labels:
+      raven.project: "c-masskette"
+
   # Status page on Tailscale: http://<raven>:8091/
   # Unprivileged nginx running as the project owner's uid so it can
   # read bind mounts under /home/cadify (mode 750).

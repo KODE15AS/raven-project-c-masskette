@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadify Maßkette Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --orange:#f05025; --grad-a:#ef5f24; --grad-b:#ec2926;
+    --ink:#3E4958; --bg:#1c2127; --panel:#232932; --panel2:#2a313c;
+    --line:#39414d; --txt:#dfe4ea; --dim:#8b95a3;
+    --green:#2fd573; --red:#ff4d4d; --amber:#ffb300; --yellow:#ffe94d;
+    --mono:ui-monospace,'Cascadia Code','JetBrains Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font-family:Montserrat,'Segoe UI',Arial,sans-serif;font-size:14px}
+  header{display:flex;align-items:center;gap:18px;padding:14px 26px;
+         background:var(--panel);border-bottom:2px solid var(--orange)}
+  .wordmark{font-weight:800;font-size:22px;color:#fff;letter-spacing:.5px}
+  .wordmark span{color:var(--orange)}
+  .apptitle{font-weight:700;font-size:16px;color:var(--txt)}
+  .apptitle small{display:block;font-weight:400;font-size:11px;color:var(--dim)}
+  .lamps{margin-left:auto;display:flex;gap:22px}
+  .lamp{display:flex;align-items:center;gap:9px}
+  .bulb{width:18px;height:18px;border-radius:50%;background:#4a5462;
+        box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+  .bulb.ok{background:var(--green);box-shadow:0 0 10px 2px rgba(47,213,115,.55)}
+  .bulb.fail{background:var(--red);box-shadow:0 0 10px 2px rgba(255,77,77,.55)}
+  .bulb.run{background:var(--amber);box-shadow:0 0 10px 2px rgba(255,179,0,.55);
+            animation:pulse 1s infinite alternate}
+  @keyframes pulse{from{opacity:.45}to{opacity:1}}
+  .lamp b{font-size:11px;letter-spacing:1px}
+  .lamp small{display:block;font-size:10px;color:var(--dim);font-family:var(--mono)}
+  main{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);
+       gap:16px;padding:16px 26px;max-width:1500px;margin:0 auto}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h2{margin:0 0 10px;font-size:12px;letter-spacing:1.6px;color:var(--dim);
+           text-transform:uppercase}
+  #figwrap{position:relative;background:#fff;border-radius:6px;padding:4px}
+  #figwrap svg{display:block;width:100%;height:auto}
+  .ovl{position:absolute;width:56px;height:26px;text-align:center;
+       font:600 13px Montserrat,sans-serif;color:#3E4958;background:var(--yellow);
+       border:2px solid #3E4958;border-radius:4px;outline:none;padding:0}
+  .ovl:focus{border-color:var(--orange)}
+  .legend{font-size:11px;color:var(--dim);margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;
+            margin:0 4px 0 12px;vertical-align:-1px}
+  .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+  .ctl label{font-size:11px;letter-spacing:1px;color:var(--dim);text-transform:uppercase}
+  .ctl .val{font:700 20px var(--mono);color:var(--yellow)}
+  .ctl input[type=range]{width:100%;accent-color:var(--orange)}
+  .ctl input[type=number]{width:90px;background:var(--panel2);color:var(--yellow);
+       border:1px solid var(--line);border-radius:4px;font:700 16px var(--mono);padding:4px 6px}
+  .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center}
+  button{font:700 13px Montserrat,sans-serif;letter-spacing:.5px;border:none;
+         border-radius:6px;padding:11px 18px;cursor:pointer}
+  .primary{background:linear-gradient(120deg,var(--grad-a),var(--grad-b));color:#fff}
+  .primary:disabled{opacity:.45;cursor:wait}
+  .ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  #unverified{font:600 11px var(--mono);color:var(--amber);display:none}
+  .big{font:800 42px var(--mono);line-height:1}
+  .big small{font-size:14px;color:var(--dim);font-weight:400}
+  .kv{display:flex;justify-content:space-between;font:12px var(--mono);
+      padding:4px 0;border-bottom:1px dashed var(--line)}
+  .kv b{color:var(--txt)}
+  .verdict{display:inline-block;font:700 11px var(--mono);padding:2px 8px;border-radius:10px}
+  .vPASS{background:rgba(47,213,115,.15);color:var(--green)}
+  .vFAIL{background:rgba(255,77,77,.15);color:var(--red)}
+  .vERROR{background:rgba(255,179,0,.15);color:var(--amber)}
+  table{width:100%;border-collapse:collapse;font:11px var(--mono)}
+  td,th{padding:4px 6px;text-align:left;border-bottom:1px solid var(--line);color:var(--dim)}
+  th{color:var(--txt);font-size:10px;letter-spacing:1px}
+  #log{background:#12161b;border-radius:6px;padding:10px;font:11px var(--mono);
+       color:#9fdc9f;white-space:pre-wrap;max-height:230px;overflow:auto}
+  #msg{font:600 13px var(--mono);margin:8px 0}
+  .facts{font:11px var(--mono);color:var(--dim);margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wordmark">cadify<span>.</span></div>
+  <div class="apptitle">Maßkette Live
+    <small>executable stack-up audit &middot; KCL &middot; Zoo Design Studio API</small></div>
+  <div class="lamps">
+    <div class="lamp"><div class="bulb" id="lampFile"></div>
+      <div><b>FILE</b><small id="lampFileTxt">idle</small></div></div>
+    <div class="lamp"><div class="bulb" id="lampEngine"></div>
+      <div><b>ENGINE</b><small id="lampEngineTxt">idle</small></div></div>
+    <div class="lamp"><div class="bulb" id="lampAudit"></div>
+      <div><b>AUDIT</b><small id="lampAuditTxt">idle</small></div></div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <h2>Figure 1 — the X-axis Maßkette (edit the yellow boxes)</h2>
+      <div id="figwrap"></div>
+      <div class="legend">
+        <i style="background:#fff;border:1px solid #3E4958"></i>catalog input
+        <i style="background:#ffe94d;border:1px solid #3E4958"></i>design driver (editable)
+        <i style="background:#f05025"></i>station plane
+      </div>
+      <div class="controls">
+        <div class="ctl"><label>stroke</label><div class="val" id="vStroke"></div>
+          <input type="range" id="sStroke" min="50" max="400" step="1"></div>
+        <div class="ctl"><label>extension</label><div class="val" id="vExtension"></div>
+          <input type="range" id="sExtension" min="0" max="400" step="1"></div>
+        <div class="ctl"><label>spacer</label><div class="val" id="vSpacer"></div>
+          <input type="range" id="sSpacer" min="0" max="80" step="1"></div>
+        <div class="ctl"><label>spec pin-to-pin</label>
+          <input type="number" id="nSpec" min="300" max="1000"></div>
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="btnCommit">COMMIT &rarr; RUN AUDIT</button>
+        <button class="ghost" id="btnBreak">Break the spec (stroke &rarr; 200)</button>
+        <button class="ghost" id="btnRestore">Restore baseline</button>
+        <span id="unverified">&#9650; UNVERIFIED &mdash; local arithmetic only, commit to audit</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <div class="card">
+      <h2>Audit verdict</h2>
+      <div><span class="verdict" id="verdict">&mdash;</span></div>
+      <div id="msg">&mdash;</div>
+      <div class="kv"><span>closing dimension (computed)</span><b id="kPin">&mdash;</b></div>
+      <div class="kv"><span>spec</span><b id="kSpec">&mdash;</b></div>
+      <div class="kv"><span>tube length (derived)</span><b id="kTube">&mdash;</b></div>
+      <div class="kv"><span>rod length (derived)</span><b id="kRod">&mdash;</b></div>
+    </div>
+    <div class="card">
+      <h2>Engine metrics — KCL &rarr; STEP round trip</h2>
+      <div class="big" id="latency">&mdash;<small> ms</small></div>
+      <div id="spark" style="margin:8px 0"></div>
+      <div class="kv"><span>attempts (engine hangup retry)</span><b id="kAtt">&mdash;</b></div>
+      <div class="kv"><span>Zoo API call ID</span><b id="kCall" style="font-size:10px">&mdash;</b></div>
+      <div class="facts">4 KCL modules &middot; 4 asserts &middot; deterministic STEP export
+        &middot; api.zoo.dev</div>
+    </div>
+    <div class="card">
+      <h2>Run history</h2>
+      <table><thead><tr><th>time (UTC)</th><th>drivers</th><th>verdict</th><th>ms</th></tr></thead>
+      <tbody id="hist"></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Verification log</h2>
+      <div id="log">&mdash;</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const CAT = {rodEyeFront:51, headCap:12, pistonZone:75, glandLength:50, rodEyeRear:51};
+const $ = id => document.getElementById(id);
+let state = {stroke:180, extension:0, spacer:23, spec:442};
+let committed = null;   // last committed drivers, for UNVERIFIED badge
+let running = false;
+
+function chain(s){
+  const stationHead = CAT.rodEyeFront + CAT.headCap;
+  const stationPistonFace = stationHead + CAT.pistonZone + s.extension;
+  const stationGland = stationPistonFace + s.stroke;
+  const stationRodExit = stationGland + CAT.glandLength + s.spacer;
+  const pinToPin = stationRodExit + CAT.rodEyeRear;
+  return {stationHead, stationPistonFace, stationGland, stationRodExit, pinToPin,
+          tubeLength: CAT.pistonZone + s.stroke + CAT.glandLength,
+          rodLength: s.stroke + CAT.glandLength + s.spacer};
+}
+
+/* ---------- figure ---------- */
+const VW = 1200, VH = 620, X0 = 80, X1 = 1120;
+function renderFigure(){
+  const c = chain(state);
+  const sc = (X1 - X0) / c.pinToPin;
+  const X = mm => X0 + mm * sc;
+  const cy = 240;
+  const ok = committed && sameDrivers(state, committed.drivers) &&
+             committed.result === 'PASS';
+  let g = '';
+  const P = (v) => v.toFixed(1);
+
+  // station planes (Cadify orange, dash-dot)
+  const stations = [
+    ['STA 0', 0], ['head', c.stationHead], ['piston', c.stationPistonFace],
+    ['gland', c.stationGland], ['rod exit', c.stationRodExit], ['pin', c.pinToPin]];
+  for (const [lbl, mm] of stations){
+    g += `<line x1="${P(X(mm))}" y1="95" x2="${P(X(mm))}" y2="530"
+          stroke="#f05025" stroke-width="1.4" stroke-dasharray="10 4 2 4"/>`;
+    g += `<text x="${P(X(mm))}" y="88" font-size="10" text-anchor="middle"
+          fill="#f05025" font-weight="600">${lbl}</text>`;
+  }
+
+  // geometry silhouette (neutral grays, ink outlines)
+  const ink = '#3E4958';
+  const rect = (a,b,hmm,fill) => {
+    const h = hmm*sc;
+    return `<rect x="${P(X(a))}" y="${P(cy-h/2)}" width="${P((b-a)*sc)}"
+            height="${P(h)}" fill="${fill}" stroke="${ink}" stroke-width="1.2"/>`; };
+  const eye = (mm) => {
+    const r = 45*sc, rh = 22.5*sc;
+    return `<circle cx="${P(X(mm))}" cy="${cy}" r="${P(r)}" fill="#d9dde2"
+             stroke="${ink}" stroke-width="1.2"/>
+            <circle cx="${P(X(mm))}" cy="${cy}" r="${P(rh)}" fill="#fff"
+             stroke="${ink}" stroke-width="1.2"/>`; };
+  g += rect(20, CAT.rodEyeFront, 50, '#c2c7ce');                       // neck
+  g += rect(CAT.rodEyeFront, c.stationHead, 100, '#aeb6bf');           // endcap
+  g += rect(c.stationHead, c.stationHead + c.tubeLength, 84, '#eceef1');// tube
+  g += rect(c.stationGland, c.stationGland + CAT.glandLength, 90, '#cdd2d8'); // gland
+  g += rect(c.stationGland + CAT.glandLength, c.stationRodExit, 40, '#c2c7ce'); // spacer
+  g += rect(c.stationRodExit, c.pinToPin - 18, 30, '#d9dde2');         // rod neck
+  // piston (dashed, inside tube)
+  {
+    const h = 60*sc;
+    g += `<rect x="${P(X(c.stationPistonFace-15))}" y="${P(cy-h/2)}"
+          width="${P(15*sc)}" height="${P(h)}" fill="none" stroke="${ink}"
+          stroke-width="1.2" stroke-dasharray="5 4"/>`;
+  }
+  g += eye(0) + eye(c.pinToPin);
+  g += `<line x1="${P(X0-30)}" y1="${cy}" x2="${P(X1+30)}" y2="${cy}"
+        stroke="${ink}" stroke-width="0.7" stroke-dasharray="14 5 3 5"/>`;
+
+  // chain rows
+  const segs = [
+    {a:0, b:CAT.rodEyeFront, t:'51'},
+    {a:CAT.rodEyeFront, b:c.stationHead, t:'12'},
+    {a:c.stationHead, b:c.stationHead+CAT.pistonZone, t:'75'},
+    {a:c.stationHead+CAT.pistonZone, b:c.stationPistonFace, key:'extension'},
+    {a:c.stationPistonFace, b:c.stationGland, key:'stroke'},
+    {a:c.stationGland, b:c.stationGland+CAT.glandLength, t:'50'},
+    {a:c.stationGland+CAT.glandLength, b:c.stationRodExit, key:'spacer'},
+    {a:c.stationRodExit, b:c.pinToPin, t:'51'}];
+  overlays.length = 0;
+  segs.forEach((s2,i)=>{
+    const y = i%2 ? 500 : 465;
+    const xa = X(s2.a), xb = X(s2.b), mid = (xa+xb)/2;
+    if (xb-xa > 6) g += arrow(xa, xb, y, ink);
+    if (s2.key){ overlays.push({key:s2.key, x:mid, y:y}); }
+    else {
+      g += `<rect x="${P(mid-19)}" y="${y-12}" width="38" height="22" fill="#fff"
+            stroke="${ink}" stroke-width="1"/>
+            <text x="${P(mid)}" y="${y+4}" font-size="13" font-weight="600"
+            text-anchor="middle" fill="${ink}">${s2.t}</text>`;
+    }
+  });
+
+  // closing dimension (hero, gradient frame; red when spec broken)
+  const drift = c.pinToPin !== state.spec;
+  const midc = (X(0)+X(c.pinToPin))/2;
+  g += arrow(X(0), X(c.pinToPin), 565, ink);
+  g += `<rect x="${P(midc-46)}" y="548" width="92" height="32" rx="4"
+        fill="#ffe94d" stroke="${drift ? '#ec2926' : 'url(#cgrad)'}"
+        stroke-width="3"/>
+        <text x="${P(midc)}" y="569" font-size="15" font-weight="800"
+        text-anchor="middle" fill="${drift ? '#ec2926' : '#3E4958'}">${c.pinToPin}</text>`;
+  if (drift) g += `<text x="${P(midc+56)}" y="569" font-size="12" font-weight="700"
+        fill="#ec2926">&ne; spec ${state.spec}</text>`;
+  g += `<text x="${P(X(0))}" y="600" font-size="11" fill="#5a6472">pin-to-pin =
+        &Sigma; Ma&szlig;kette ${drift ? '(OPEN &mdash; audit will FAIL)'
+        : (ok ? '(closed &amp; verified)' : '(closed locally, unverified)')}</text>`;
+
+  // top dim
+  g += arrow(X(0), X(c.pinToPin), 50, '#5a6472');
+  g += `<text x="${P(midc)}" y="40" font-size="11" text-anchor="middle"
+        fill="#5a6472">eye center &mdash; eye center</text>`;
+
+  $('figwrap').innerHTML =
+    `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg">
+     <defs><linearGradient id="cgrad" x1="0" y1="0" x2="1" y2="1">
+     <stop offset="0" stop-color="#ef5f24"/><stop offset="1" stop-color="#ec2926"/>
+     </linearGradient></defs>${g}</svg>`;
+  placeOverlays();
+}
+function arrow(xa, xb, y, col){
+  return `<line x1="${xa.toFixed(1)}" y1="${y}" x2="${xb.toFixed(1)}" y2="${y}"
+    stroke="${col}" stroke-width="1.1"/>
+    <path d="M ${xa.toFixed(1)} ${y} l 8 -3.5 v 7 z" fill="${col}"/>
+    <path d="M ${xb.toFixed(1)} ${y} l -8 -3.5 v 7 z" fill="${col}"/>`;
+}
+
+/* ---------- editable overlays on the figure ---------- */
+const overlays = [];
+const ovlEls = {};
+for (const key of ['extension','stroke','spacer']){
+  const el = document.createElement('input');
+  el.type = 'number'; el.className = 'ovl'; el.id = 'ovl_' + key;
+  el.addEventListener('change', () => {
+    setDriver(key, parseInt(el.value || 0, 10));
+  });
+  ovlEls[key] = el;
+}
+function placeOverlays(){
+  const wrap = $('figwrap');
+  const w = wrap.clientWidth - 8, h = w * VH / VW;
+  for (const o of overlays){
+    const el = ovlEls[o.key];
+    if (!el.isConnected) wrap.appendChild(el);
+    el.style.left = (4 + o.x / VW * w - 28) + 'px';
+    el.style.top  = (4 + o.y / VH * h - 13) + 'px';
+    if (document.activeElement !== el) el.value = state[o.key];
+  }
+}
+window.addEventListener('resize', placeOverlays);
+
+/* ---------- controls ---------- */
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function setDriver(key, val){
+  const lim = {stroke:[50,400], extension:[0,400], spacer:[0,80], spec:[300,1000]}[key];
+  state[key] = clamp(isNaN(val) ? lim[0] : val, lim[0], lim[1]);
+  if (state.extension > state.stroke) state.extension = state.stroke;
+  syncControls(); renderFigure(); updateBadge();
+}
+function syncControls(){
+  $('sStroke').value = state.stroke;      $('vStroke').textContent = state.stroke;
+  $('sExtension').value = state.extension;$('vExtension').textContent = state.extension;
+  $('sExtension').max = state.stroke;
+  $('sSpacer').value = state.spacer;      $('vSpacer').textContent = state.spacer;
+  if (document.activeElement !== $('nSpec')) $('nSpec').value = state.spec;
+  const c = chain(state);
+  $('kPin').textContent = c.pinToPin + ' mm';
+  $('kSpec').textContent = state.spec + ' mm';
+  $('kTube').textContent = c.tubeLength + ' mm';
+  $('kRod').textContent = c.rodLength + ' mm';
+}
+$('sStroke').addEventListener('input', e => setDriver('stroke', +e.target.value));
+$('sExtension').addEventListener('input', e => setDriver('extension', +e.target.value));
+$('sSpacer').addEventListener('input', e => setDriver('spacer', +e.target.value));
+$('nSpec').addEventListener('change', e => setDriver('spec', +e.target.value));
+
+function sameDrivers(a, b){
+  return b && a.stroke===b.stroke && a.extension===b.extension &&
+         a.spacer===b.spacer && a.spec===b.spec;
+}
+function updateBadge(){
+  const dirty = !running && committed && !sameDrivers(state, committed.drivers);
+  $('unverified').style.display = dirty ? 'inline' : 'none';
+  if (dirty){ setLamp('Audit', '', 'stale'); }
+}
+
+/* ---------- lamps ---------- */
+function setLamp(name, txt, cls){
+  const b = $('lamp'+name), t = $('lamp'+name+'Txt');
+  b.className = 'bulb' + (cls && cls!=='stale' ? ' '+cls : '');
+  t.textContent = txt || (cls==='stale' ? 'stale' : 'idle');
+}
+
+/* ---------- commit / audit ---------- */
+async function commit(){
+  if (running) return;
+  running = true;
+  $('btnCommit').disabled = true;
+  setLamp('File','writing…','run'); setLamp('Engine','queued','run');
+  setLamp('Audit','waiting',''); $('unverified').style.display='none';
+  $('msg').textContent = 'compiling via api.zoo.dev …';
+  const t0 = performance.now();
+  try {
+    const rsp = await fetch('/api/commit', {method:'POST',
+      headers:{'content-type':'application/json'}, body: JSON.stringify(state)});
+    const rep = await rsp.json();
+    if (!rsp.ok) throw new Error(rep.detail || 'request failed');
+    applyReport(rep, Math.round(performance.now()-t0));
+  } catch(err){
+    setLamp('File','error','fail'); setLamp('Engine','?',''); setLamp('Audit','?','');
+    $('msg').textContent = 'ERROR: ' + err.message;
+  }
+  running = false;
+  $('btnCommit').disabled = false;
+  updateBadge();
+}
+function applyReport(rep, e2e){
+  committed = {drivers: rep.drivers, result: rep.result};
+  setLamp('File','written','ok');
+  setLamp('Engine', rep.engine==='ok' ? 'compiled' : 'error',
+          rep.engine==='ok' ? 'ok' : 'fail');
+  setLamp('Audit', rep.audit==='ok' ? 'asserts PASS' :
+          rep.audit==='fail' ? 'assert FAILED' : '—',
+          rep.audit==='ok' ? 'ok' : rep.audit==='fail' ? 'fail' : '');
+  $('verdict').textContent = rep.result;
+  $('verdict').className = 'verdict v'+rep.result;
+  $('msg').textContent = rep.message;
+  $('latency').innerHTML = rep.latency_ms + '<small> ms engine &middot; '
+    + (e2e||'&mdash;') + ' ms end-to-end</small>';
+  $('kAtt').textContent = rep.attempts.length + '  [' + rep.attempts.join(', ') + ' ms]';
+  $('kCall').textContent = rep.call_id || 'n/a';
+  $('log').textContent = rep.log || '—';
+  loadHistory();
+  renderFigure();
+}
+
+/* ---------- history & sparkline ---------- */
+async function loadHistory(){
+  const st = await (await fetch('/api/state')).json();
+  const rows = (st.history || []).slice().reverse().slice(0, 10);
+  $('hist').innerHTML = rows.map(r =>
+    `<tr><td>${(r.time||'').replace('T',' ').replace('Z','')}</td>
+     <td>${r.drivers.stroke}/${r.drivers.extension}/${r.drivers.spacer}&rarr;${r.drivers.spec}</td>
+     <td><span class="verdict v${r.result}">${r.result}</span></td>
+     <td>${r.latency_ms}</td></tr>`).join('');
+  spark((st.history||[]).map(r => r.latency_ms));
+  return st;
+}
+function spark(vals){
+  if (!vals.length){ $('spark').innerHTML=''; return; }
+  const w=280, h=40, max=Math.max(...vals, 1);
+  const pts = vals.map((v,i)=>
+    `${(i/(Math.max(vals.length-1,1))*w).toFixed(1)},${(h - v/max*(h-4)).toFixed(1)}`);
+  $('spark').innerHTML = `<svg width="${w}" height="${h}">
+    <polyline points="${pts.join(' ')}" fill="none" stroke="#f05025" stroke-width="2"/>
+    <text x="${w-2}" y="10" font-size="9" fill="#8b95a3" text-anchor="end"
+    font-family="monospace">max ${max} ms</text></svg>`;
+}
+
+/* ---------- demo buttons ---------- */
+$('btnCommit').addEventListener('click', commit);
+$('btnBreak').addEventListener('click', () => {
+  setDriver('stroke', 200); commit();
+});
+$('btnRestore').addEventListener('click', () => {
+  state = {stroke:180, extension:0, spacer:23, spec:442};
+  syncControls(); renderFigure(); commit();
+});
+
+/* ---------- boot ---------- */
+(async function(){
+  try {
+    const st = await loadHistory();
+    state = {...st.drivers, spec: st.spec};
+    if (st.last){
+      applyReport(st.last, null);
+    }
+  } catch(e){ $('msg').textContent = 'backend unreachable: ' + e.message; }
+  syncControls(); renderFigure(); updateBadge();
+})();
+</script>
+</body>
+</html>
