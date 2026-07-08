@@ -34,8 +34,15 @@ artifacts/         # verify-report.json, live-report.json, metrics.jsonl, STEP
 ## Cadify Maßkette Live (interactive demo, :8092)
 
 ```bash
-docker compose up -d --build live    # -> http://<raven>:8092/
+docker compose up -d --build live    # -> http://<raven>:8092/ (Tailscale)
 ```
+
+**Public demo URL (Tailscale Funnel):** https://cadify104raven.tail14de1b.ts.net/
+— reference documents at [/docs/best-practice.html](https://cadify104raven.tail14de1b.ts.net/docs/best-practice.html)
+and [/docs/dimension-syntax.html](https://cadify104raven.tail14de1b.ts.net/docs/dimension-syntax.html).
+Funnel is managed on raven: `tailscale funnel status` / `tailscale funnel --https=443 off`.
+Note: while Funnel is on, the page (including the COMMIT endpoint) is publicly
+reachable; turn it off after demo sessions.
 
 Figure 1 rendered live in the browser; the yellow driver boxes (effective
 stroke, extension, spacer) are editable, synced with sliders. Local arithmetic
