@@ -1,0 +1,43 @@
+// ============================================================
+// rod.kcl -- SUB-ASSEMBLY 2: piston rod
+// Piston, rod, locknut/spacer, top eye.
+// Owns the internal chain rod (= 253, derived) + 51.
+// The piston face sits exactly on stationPistonFace.
+// Positions come ONLY from stack-up stations, never from other parts.
+// ============================================================
+@settings(defaultLengthUnit = mm)
+
+import stationPistonFace, stationGland, stationRodExit, glandLength, spacer, rodLength, rodEyeRear, pinToPin, pistonDia, pistonWidth, rodDia, locknutDia, eyeOuterDia, eyeHoleDia, eyeWidth, neckDia from "stackup-x.kcl"
+
+// Piston: face exactly on stationPistonFace (body extends backwards)
+pistonSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = pistonDia / 2)
+piston = extrude(pistonSketch, length = pistonWidth)
+  |> translate(x = stationPistonFace - pistonWidth, global = true)
+
+// Rod: from the piston face, length = rodLength (DERIVED, absorbs the drivers)
+rodSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = rodDia / 2)
+rodBody = extrude(rodSketch, length = rodLength)
+  |> translate(x = stationPistonFace, global = true)
+
+// Locknut / spacer zone: the 23 (driver), from the gland end
+locknutSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = locknutDia / 2)
+locknut = extrude(locknutSketch, length = spacer)
+  |> translate(x = stationGland + glandLength, global = true)
+
+// Neck between rod exit and top eye
+rodNeckSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = neckDia / 2)
+rodNeck = extrude(rodNeckSketch, length = pinToPin - eyeOuterDia / 3 - stationRodExit)
+  |> translate(x = stationRodExit, global = true)
+
+// Top eye: ring centered on pinToPin, hole axis transverse (Y)
+topEyeSketch = startSketchOn(XZ)
+  |> circle(center = [pinToPin, 0], radius = eyeOuterDia / 2)
+  |> subtract2d(tool = circle(center = [pinToPin, 0], radius = eyeHoleDia / 2))
+topEye = extrude(topEyeSketch, length = eyeWidth)
+  |> translate(y = eyeWidth / 2, global = true)
+
+export rodAssembly = [piston, rodBody, locknut, rodNeck, topEye]

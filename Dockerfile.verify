@@ -1,0 +1,16 @@
+FROM alpine:3.20
+
+# Zoo CLI (static musl binary) — the KCL compiler/exporter against the Zoo API
+ARG ZOO_CLI_VERSION=v0.2.178
+ARG ZOO_CLI_SHA256=238a99e9f65ec0a52396a9247d5b2645b511a3abb4ad26096b48acff0a0e60f1
+
+RUN apk add --no-cache ca-certificates curl jq bash coreutils \
+    && curl -fSL "https://dl.zoo.dev/releases/cli/${ZOO_CLI_VERSION}/zoo-x86_64-unknown-linux-musl" -o /usr/local/bin/zoo \
+    && echo "${ZOO_CLI_SHA256}  /usr/local/bin/zoo" | sha256sum -c - \
+    && chmod a+x /usr/local/bin/zoo
+
+WORKDIR /work
+COPY scripts/verify.sh /usr/local/bin/verify.sh
+RUN chmod +x /usr/local/bin/verify.sh
+
+ENTRYPOINT ["/usr/local/bin/verify.sh"]

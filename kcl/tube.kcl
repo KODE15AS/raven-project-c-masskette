@@ -1,0 +1,42 @@
+// ============================================================
+// tube.kcl -- SUB-ASSEMBLY 1: cylinder tube
+// Bottom eye, endcap, tube, head bush (gland).
+// Owns the internal chain 51 + 12 + tube (= 305, derived).
+// Positions come ONLY from stack-up stations, never from other parts.
+// ============================================================
+@settings(defaultLengthUnit = mm)
+
+import rodEyeFront, headCap, tubeLength, stationHead, stationGland, glandLength, eyeOuterDia, eyeHoleDia, eyeWidth, endcapDia, tubeOuterDia, neckDia, glandDia from "stackup-x.kcl"
+
+// Bottom eye: ring centered on STA 0, hole axis transverse (Y)
+bottomEyeSketch = startSketchOn(XZ)
+  |> circle(center = [0, 0], radius = eyeOuterDia / 2)
+  |> subtract2d(tool = circle(center = [0, 0], radius = eyeHoleDia / 2))
+bottomEye = extrude(bottomEyeSketch, length = eyeWidth)
+  |> translate(y = eyeWidth / 2, global = true)
+
+// Neck between eye and endcap
+neckSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = neckDia / 2)
+neck = extrude(neckSketch, length = rodEyeFront - eyeOuterDia / 3)
+  |> translate(x = eyeOuterDia / 3, global = true)
+
+// Endcap: from station rodEyeFront, thickness headCap (catalog)
+endcapSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = endcapDia / 2)
+endcap = extrude(endcapSketch, length = headCap)
+  |> translate(x = rodEyeFront, global = true)
+
+// Tube: from stationHead, length = tubeLength (DERIVED, absorbs the drivers)
+tubeSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = tubeOuterDia / 2)
+tubeBody = extrude(tubeSketch, length = tubeLength)
+  |> translate(x = stationHead, global = true)
+
+// Head bush (gland) collar: from stationGland, length glandLength (catalog)
+glandSketch = startSketchOn(YZ)
+  |> circle(center = [0, 0], radius = glandDia / 2)
+glandCollar = extrude(glandSketch, length = glandLength)
+  |> translate(x = stationGland, global = true)
+
+export tubeAssembly = [bottomEye, neck, endcap, tubeBody, glandCollar]

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ma&#223;kette — Executable Stack-Up Demo</title>
+<style>
+  :root { --ink:#1a202c; --sub:#4a5568; --blue:#2b6cb0; --yellow:#ffe94d; --pass:#2f855a; --fail:#c53030; }
+  * { box-sizing:border-box; }
+  body { font-family:"Segoe UI",Arial,sans-serif; margin:0; background:#f7fafc; color:var(--ink); }
+  header { background:var(--ink); color:#fff; padding:24px 40px; }
+  header h1 { margin:0 0 6px; font-size:26px; }
+  header p { margin:0; color:#cbd5e1; font-size:15px; }
+  main { max-width:1200px; margin:0 auto; padding:32px 40px; }
+  .status { display:flex; align-items:center; gap:16px; padding:20px 24px; border-radius:10px;
+            background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:28px; }
+  .badge { font-size:22px; font-weight:bold; padding:10px 22px; border-radius:8px; color:#fff; }
+  .badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); } .badge.na { background:#718096; }
+  .meta { font-size:14px; color:var(--sub); }
+  .meta b { color:var(--ink); }
+  section { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.08);
+            padding:24px; margin-bottom:28px; }
+  section h2 { margin:0 0 10px; font-size:18px; }
+  section p.caption { color:var(--sub); font-size:14px; margin:0 0 14px; }
+  img.figure { width:100%; height:auto; border:1px solid #e2e8f0; border-radius:6px; }
+  pre { background:#f1f5f9; border-radius:6px; padding:14px; font-size:12.5px; overflow-x:auto;
+        white-space:pre-wrap; max-height:320px; }
+  .chain { font-family:Consolas,monospace; font-size:16px; }
+  .chain .y { background:var(--yellow); padding:1px 6px; border:1px solid var(--ink); border-radius:3px; }
+  footer { text-align:center; color:var(--sub); font-size:13px; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ma&#223;kette &mdash; Executable Stack-Up Demo</h1>
+  <p>raven-project-c-masskette &middot; hydraulic cylinder, X-axis dimension chain in KCL &middot; Cadify / KODE15</p>
+</header>
+<main>
+  <div class="status">
+    <div id="badge" class="badge na">&mdash;</div>
+    <div class="meta">
+      <div><b id="msg">No verification report yet.</b></div>
+      <div>Last run: <span id="time">&ndash;</span> &middot;
+        run <code>docker compose run --rm verify</code> on raven to re-audit the chain</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>The chain</h2>
+    <p class="chain">51 + 12 + 75 + <span class="y">0</span> + <span class="y">180</span> + 50 + <span class="y">23</span> + 51
+      = <span class="y"><b>442</b></span> &nbsp; <span style="color:var(--sub);font-family:Segoe UI">
+      (white = catalog input &middot; yellow = driver / derived &middot; 442 = closing dimension, asserted)</span></p>
+  </section>
+
+  <section>
+    <h2>Figure 1 &mdash; the executable stack-up</h2>
+    <p class="caption">Stations are running sums of the chain; each becomes a KCL plane. The closing dimension is computed once, never typed twice, asserted on every compile.</p>
+    <img class="figure" src="figures/masskette.svg" alt="Masskette illustration">
+  </section>
+
+  <section>
+    <h2>Figure 2 &mdash; the chain across sub-assemblies</h2>
+    <p class="caption">tube.kcl and rod.kcl compile in isolation, mount on shared station planes, and the master chain closes across both &mdash; tube = 305 and rod = 253 absorb the drivers.</p>
+    <img class="figure" src="figures/masskette-subassemblies.svg" alt="Masskette sub-assemblies illustration">
+  </section>
+
+  <section>
+    <h2>Last verification log</h2>
+    <pre id="log">&ndash;</pre>
+  </section>
+</main>
+<footer>Best Practice: Executable Stack-Ups (Ma&#223;kette) in KCL &middot; cadify.no</footer>
+<script>
+fetch('artifacts/verify-report.json', {cache:'no-store'})
+  .then(r => r.ok ? r.json() : null)
+  .then(rep => {
+    if (!rep) return;
+    const badge = document.getElementById('badge');
+    badge.textContent = rep.result;
+    badge.className = 'badge ' + (rep.result === 'PASS' ? 'pass' : 'fail');
+    document.getElementById('msg').textContent = rep.message;
+    document.getElementById('time').textContent = rep.time;
+    document.getElementById('log').textContent = rep.log;
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+name: raven-project-c-masskette
+
+services:
+  # On-demand verification: docker compose run --rm verify
+  verify:
+    build:
+      context: .
+      dockerfile: Dockerfile.verify
+    image: raven-project-c-masskette/verify:latest
+    env_file: .env            # ZOO_API_TOKEN=...
+    volumes:
+      - ./kcl:/work/kcl:ro
+      - ./artifacts:/work/artifacts
+    labels:
+      raven.project: "c-masskette"
+
+  # Status page on Tailscale: http://<raven>:8091/
+  # Unprivileged nginx running as the project owner's uid so it can
+  # read bind mounts under /home/cadify (mode 750).
+  web:
+    image: nginxinc/nginx-unprivileged:alpine
+    user: "1000:1000"
+    ports:
+      - "8091:8080"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./artifacts:/usr/share/nginx/html/artifacts:ro
+      - ./docs/figures:/usr/share/nginx/html/figures:ro
+    restart: unless-stopped
+    labels:
+      raven.project: "c-masskette"

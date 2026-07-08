@@ -1,0 +1,51 @@
+// ============================================================
+// stackup-x.kcl -- the X-axis Masskette, and nothing else
+// Convention (Best Practice Rev 0, section 3):
+//   catalog inputs -> design drivers -> derived stations
+//   -> derived part dimensions -> asserts
+// The chain is plain arithmetic. Every total is derived, never typed.
+// ============================================================
+@settings(defaultLengthUnit = mm)
+
+// --- Catalog inputs (standard parts) -- white in Figure 1 ---
+export rodEyeFront = 51
+export headCap = 12
+export pistonZone = 75
+export glandLength = 50
+export rodEyeRear = 51
+
+// --- Design drivers -- yellow in Figure 1 ---
+export stroke = 180
+export extension = 0 // current state: retracted
+export spacer = 23
+
+// --- Cross-section catalog inputs (diameters) ---
+export boreDia = 70
+export pistonDia = 60
+export rodDia = 30
+export tubeOuterDia = 84
+export endcapDia = 100
+export eyeOuterDia = 90
+export eyeHoleDia = 45
+export eyeWidth = 30
+export neckDia = 50
+export glandDia = 90
+export locknutDia = 40
+export pistonWidth = 15
+
+// --- Derived stations: running sums from the front pin center ---
+export stationHead = rodEyeFront + headCap
+export stationPistonFace = stationHead + pistonZone + extension
+export stationGland = stationPistonFace + stroke
+export stationRodExit = stationGland + glandLength + spacer
+export pinToPin = stationRodExit + rodEyeRear
+
+// --- Derived part dimensions: custom parts absorb the drivers ---
+export tubeLength = pistonZone + stroke + glandLength // = 305
+export rodLength = stroke + glandLength + spacer // = 253
+
+// --- Closing dimension: computed once, never typed twice ---
+assert(pinToPin, isEqualTo = 442, error = "pin-to-pin drifted from spec (expected 442)")
+assert(stationHead + tubeLength, isEqualTo = stationRodExit - spacer, error = "tube must end where the gland ends")
+assert(stroke, isGreaterThan = 0, error = "stroke must be positive")
+assert(extension, isGreaterThanOrEqual = 0, isLessThanOrEqual = stroke, error = "extension state must be within stroke")

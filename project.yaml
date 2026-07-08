@@ -1,0 +1,16 @@
+name: raven-project-c-masskette
+description: >
+  Executable stack-up (Masskette) demo in KCL for Zoo Design Studio.
+  Hydraulic cylinder X-axis dimension chain with asserted closing dimension,
+  sub-assemblies mounted on station planes.
+owner: Cadify / KODE15AS
+port: 8091
+services:
+  verify: "docker compose run --rm verify"
+  web: "docker compose up -d web"
+labels:
+  raven.project: c-masskette
+companion_documents:
+  - "Best Practice: Executable Stack-Ups (Masskette) in KCL Rev 0 (2026-07-08)"
+  - "KCL Model Dimension Syntax Rev 1 (2026-07-08)"
+status: step-1-done

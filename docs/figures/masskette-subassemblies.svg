@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="960" viewBox="0 0 1400 960" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="mE" markerWidth="12" markerHeight="10" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#1a202c"/>
+    </marker>
+    <marker id="mS" markerWidth="12" markerHeight="10" refX="1" refY="4" orient="auto">
+      <path d="M12,0 L1,4 L12,8 Z" fill="#1a202c"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="960" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="170" y="30" font-size="22" font-weight="bold" fill="#1a202c">Ma&#223;kette across sub-assemblies &#8212; shared station planes</text>
+  <text x="170" y="52" font-size="14" fill="#4a5568">Each sub-assembly is modeled in isolation and owns part of the chain; station planes align them; the closing dimension is asserted at top level.</text>
+
+  <!-- Station labels (staggered two rows) -->
+  <g font-size="11.5" fill="#2b6cb0" text-anchor="middle">
+    <text x="170"    y="78">STA 0</text>
+    <text x="292.4"  y="78">51</text>
+    <text x="501.2"  y="78">stationPistonFace 138</text>
+    <text x="933.2"  y="78">stationGland 318</text>
+    <text x="1108.4" y="78">stationRodExit 391</text>
+    <text x="321.2"  y="94">stationHead 63</text>
+    <text x="1053.2" y="94">368</text>
+    <text x="1230.8" y="94">pinToPin 442</text>
+  </g>
+
+  <!-- Station planes: one grid, crossing both sub-assemblies -->
+  <g stroke="#2b6cb0" stroke-width="1.5" stroke-dasharray="14 5 3 5">
+    <line x1="170"    y1="104" x2="170"    y2="812"/>
+    <line x1="292.4"  y1="104" x2="292.4"  y2="812"/>
+    <line x1="321.2"  y1="104" x2="321.2"  y2="812"/>
+    <line x1="501.2"  y1="104" x2="501.2"  y2="812"/>
+    <line x1="933.2"  y1="104" x2="933.2"  y2="812"/>
+    <line x1="1053.2" y1="104" x2="1053.2" y2="812"/>
+    <line x1="1108.4" y1="104" x2="1108.4" y2="812"/>
+    <line x1="1230.8" y1="104" x2="1230.8" y2="812"/>
+  </g>
+
+  <!-- ============ SUB-ASSEMBLY 1: cylinder tube ============ -->
+  <rect x="166" y="112" width="404" height="22" fill="#ffffff"/>
+  <text x="170" y="128" font-size="15" font-weight="bold" fill="#334155">SUB-ASSEMBLY 1 &#8212; cylinder tube (tube.kcl)</text>
+
+  <!-- centerline -->
+  <line x1="120" y1="270" x2="1120" y2="270" stroke="#64748b" stroke-width="1" stroke-dasharray="20 6 4 6"/>
+
+  <g stroke="#475569" stroke-width="2">
+    <!-- clevis neck -->
+    <rect x="205" y="245" width="88" height="50" fill="#cbd5e1"/>
+    <!-- endcap -->
+    <rect x="292.4" y="162" width="28.8" height="216" fill="#b6c2d2"/>
+    <!-- tube -->
+    <rect x="321.2" y="170" width="732" height="200" fill="#cbd5e1"/>
+    <!-- bore (empty: no piston, no rod) -->
+    <rect x="329.2" y="186" width="716" height="168" fill="#dde5ee" stroke="none"/>
+    <!-- head bush (gland) with rod bore -->
+    <rect x="933.2" y="178" width="120" height="184" fill="#9fb0c3"/>
+    <rect x="933.2" y="234" width="120" height="72" fill="#dde5ee" stroke-width="1"/>
+    <!-- bottom eye -->
+    <circle cx="170" cy="270" r="62" fill="#cbd5e1"/>
+    <circle cx="170" cy="270" r="28" fill="#ffffff"/>
+  </g>
+
+  <!-- callouts -->
+  <rect x="134" y="340" width="72" height="17" fill="#ffffff"/>
+  <text x="170" y="353" font-size="12" fill="#4a5568" text-anchor="middle">bottom eye</text>
+  <rect x="277" y="137" width="60" height="17" fill="#ffffff"/>
+  <text x="307" y="150" font-size="12" fill="#4a5568" text-anchor="middle">endcap</text>
+  <rect x="930" y="143" width="126" height="17" fill="#ffffff"/>
+  <text x="993" y="156" font-size="12" fill="#4a5568" text-anchor="middle">head bush (gland)</text>
+
+  <!-- Sub-assembly 1 internal chain -->
+  <line x1="933.2" y1="400" x2="1053.2" y2="400" stroke="#1a202c" stroke-width="1.4" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  <text x="993.2" y="392" font-size="15" text-anchor="middle" fill="#1a202c">50</text>
+  <g stroke="#1a202c" stroke-width="1.4">
+    <line x1="170"    y1="428" x2="292.4"  y2="428" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="292.4"  y1="428" x2="321.2"  y2="428" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="321.2"  y1="428" x2="1053.2" y2="428" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  </g>
+  <text x="231.2" y="420" font-size="15" text-anchor="middle" fill="#1a202c">51</text>
+  <text x="306.8" y="404" font-size="15" text-anchor="middle" fill="#1a202c">12</text>
+  <rect x="592" y="416" width="190" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="687" y="433" font-size="14" text-anchor="middle" fill="#1a202c">tube = 305  (75 + 180 + 50)</text>
+
+  <!-- ============ SUB-ASSEMBLY 2: piston rod ============ -->
+  <rect x="166" y="456" width="410" height="22" fill="#ffffff"/>
+  <text x="170" y="472" font-size="15" font-weight="bold" fill="#334155">SUB-ASSEMBLY 2 &#8212; piston rod (rod.kcl)</text>
+
+  <!-- centerline -->
+  <line x1="420" y1="590" x2="1292" y2="590" stroke="#64748b" stroke-width="1" stroke-dasharray="20 6 4 6"/>
+
+  <g stroke="#475569" stroke-width="2">
+    <!-- rod -->
+    <rect x="501.2" y="554" width="666.8" height="72" fill="#c2ccd9"/>
+    <!-- piston, face exactly on stationPistonFace -->
+    <rect x="465.2" y="518" width="36" height="144" fill="#b6c2d2"/>
+    <!-- locknut / spacer zone (the 23) -->
+    <rect x="1053.2" y="542" width="55.2" height="96" fill="#b6c2d2"/>
+    <!-- clevis neck -->
+    <rect x="1108.4" y="565" width="62" height="50" fill="#cbd5e1"/>
+    <!-- top eye -->
+    <circle cx="1230.8" cy="590" r="62" fill="#cbd5e1"/>
+    <circle cx="1230.8" cy="590" r="28" fill="#ffffff"/>
+  </g>
+
+  <!-- callouts -->
+  <rect x="457" y="495" width="52" height="17" fill="#ffffff"/>
+  <text x="483" y="508" font-size="12" fill="#4a5568" text-anchor="middle">piston</text>
+  <rect x="1049" y="517" width="64" height="17" fill="#ffffff"/>
+  <text x="1081" y="530" font-size="12" fill="#4a5568" text-anchor="middle">locknut</text>
+  <rect x="1201" y="503" width="60" height="17" fill="#ffffff"/>
+  <text x="1230.8" y="516" font-size="12" fill="#4a5568" text-anchor="middle">top eye</text>
+
+  <!-- Sub-assembly 2 internal chain -->
+  <g stroke="#1a202c" stroke-width="1.4">
+    <line x1="501.2"  y1="692" x2="1108.4" y2="692" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="1108.4" y1="692" x2="1230.8" y2="692" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  </g>
+  <rect x="710" y="680" width="190" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="805" y="697" font-size="14" text-anchor="middle" fill="#1a202c">rod = 253  (180 + 50 + 23)</text>
+  <text x="1169.6" y="684" font-size="15" text-anchor="middle" fill="#1a202c">51</text>
+
+  <!-- ============ TOP-LEVEL ASSEMBLY: master chain ============ -->
+  <rect x="166" y="731" width="466" height="22" fill="#ffffff"/>
+  <text x="170" y="747" font-size="15" font-weight="bold" fill="#334155">TOP-LEVEL ASSEMBLY (main.kcl) &#8212; master chain</text>
+
+  <g stroke="#1a202c" stroke-width="1.4">
+    <line x1="170"    y1="785" x2="292.4"  y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="292.4"  y1="785" x2="321.2"  y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="321.2"  y1="785" x2="501.2"  y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="501.2"  y1="785" x2="933.2"  y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="933.2"  y1="785" x2="1053.2" y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="1053.2" y1="785" x2="1108.4" y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="1108.4" y1="785" x2="1230.8" y2="785" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  </g>
+  <g font-size="15" fill="#1a202c" text-anchor="middle">
+    <text x="231.2"  y="777">51</text>
+    <text x="306.8"  y="770">12</text>
+    <text x="411.2"  y="777">75</text>
+    <text x="993.2"  y="777">50</text>
+    <text x="1169.6" y="777">51</text>
+  </g>
+  <!-- extension = 0 -->
+  <line x1="501.2" y1="771" x2="501.2" y2="785" stroke="#1a202c" stroke-width="1"/>
+  <rect x="487" y="749" width="28" height="22" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="501.2" y="765" font-size="15" text-anchor="middle" fill="#1a202c">0</text>
+  <!-- stroke = 180 -->
+  <rect x="692.2" y="773" width="50" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="717.2" y="790" font-size="15" text-anchor="middle" fill="#1a202c">180</text>
+  <!-- spacer = 23 -->
+  <rect x="1061.8" y="773" width="38" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="1080.8" y="790" font-size="15" text-anchor="middle" fill="#1a202c">23</text>
+
+  <!-- Closing dimension -->
+  <line x1="170" y1="797" x2="170" y2="857" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="1230.8" y1="797" x2="1230.8" y2="857" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="170" y1="845" x2="1230.8" y2="845" stroke="#1a202c" stroke-width="1.4" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  <rect x="668" y="832" width="64" height="26" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="700" y="851" font-size="17" font-weight="bold" text-anchor="middle" fill="#1a202c">442</text>
+  <text x="700" y="880" font-size="13" text-anchor="middle" fill="#4a5568">assert(pinToPin, isEqualTo = 442mm) &#8212; the chain closes across both sub-assemblies</text>
+
+  <!-- Legend -->
+  <rect x="170" y="898" width="26" height="16" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="204" y="911" font-size="13" fill="#1a202c">design driver / derived (parametric)</text>
+  <rect x="470" y="898" width="26" height="16" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
+  <text x="504" y="911" font-size="13" fill="#1a202c">catalog input (standard part)</text>
+  <line x1="750" y1="906" x2="790" y2="906" stroke="#2b6cb0" stroke-width="1.5" stroke-dasharray="14 5 3 5"/>
+  <text x="800" y="911" font-size="13" fill="#1a202c">station plane (KCL Plane, shared by all sub-assemblies)</text>
+  <text x="170" y="940" font-size="13" font-style="italic" fill="#4a5568">tube = 305 and rod = 253 are the derived dimensions that absorb the drivers (stroke, extension, spacer) &#8212; each sub-assembly compiles in isolation, yet both align on the same stations.</text>
+</svg>

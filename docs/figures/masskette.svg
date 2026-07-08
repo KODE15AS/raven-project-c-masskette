@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="860" viewBox="0 0 1400 860" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="mE" markerWidth="12" markerHeight="10" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8 Z" fill="#1a202c"/>
+    </marker>
+    <marker id="mS" markerWidth="12" markerHeight="10" refX="1" refY="4" orient="auto">
+      <path d="M12,0 L1,4 L12,8 Z" fill="#1a202c"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="860" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="170" y="34" font-size="22" font-weight="bold" fill="#1a202c">Ma&#223;kette &#8212; executable stack-up, hydraulic cylinder X-axis</text>
+  <text x="170" y="58" font-size="14" fill="#4a5568">Dimension chain: 51 + 12 + 75 + 0 + 180 + 50 + 23 + 51 = 442 mm &#8212; stations become planes, dimensions anchor to planes (dim::distance, Rev 1)</text>
+
+  <!-- Governing dimension: eyeCenterDistance -->
+  <line x1="170" y1="85" x2="170" y2="110" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="1230.8" y1="85" x2="1230.8" y2="110" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="170" y1="100" x2="1230.8" y2="100" stroke="#1a202c" stroke-width="1.4" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  <text x="700" y="93" font-size="15" text-anchor="middle" fill="#1a202c" font-weight="bold">eyeCenterDistance = dim::distance(stationStart = STA 0, stationEnd = pinToPin)</text>
+  <text x="700" y="122" font-size="13" text-anchor="middle" fill="#4a5568">value = 442 mm &#8212; assert(eyeCenterDistance.value, isEqualTo = pinToPin)</text>
+
+  <!-- Station planes (dash-dot vertical lines) -->
+  <g stroke="#2b6cb0" stroke-width="1.5" stroke-dasharray="14 5 3 5">
+    <line x1="170"    y1="130" x2="170"    y2="712"/>
+    <line x1="292.4"  y1="130" x2="292.4"  y2="712"/>
+    <line x1="321.2"  y1="130" x2="321.2"  y2="712"/>
+    <line x1="501.2"  y1="130" x2="501.2"  y2="712"/>
+    <line x1="933.2"  y1="130" x2="933.2"  y2="712"/>
+    <line x1="1053.2" y1="130" x2="1053.2" y2="712"/>
+    <line x1="1108.4" y1="130" x2="1108.4" y2="712"/>
+    <line x1="1230.8" y1="130" x2="1230.8" y2="712"/>
+  </g>
+
+  <!-- Station labels (rotated, along planes) -->
+  <g font-size="13" fill="#2b6cb0">
+    <text transform="rotate(-90 175 300)" x="175" y="300">STA 0 &#8212; front pin</text>
+    <text transform="rotate(-90 326 300)" x="326" y="300">stationHead = 63</text>
+    <text transform="rotate(-90 506 300)" x="506" y="300">stationPistonFace = 138</text>
+    <text transform="rotate(-90 938 300)" x="938" y="300">stationGland = 318</text>
+    <text transform="rotate(-90 1113 300)" x="1113" y="300">stationRodExit = 391</text>
+    <text transform="rotate(-90 1236 300)" x="1236" y="300">pinToPin = 442</text>
+  </g>
+
+  <!-- Centerline -->
+  <line x1="120" y1="460" x2="1292" y2="460" stroke="#64748b" stroke-width="1" stroke-dasharray="20 6 4 6"/>
+
+  <!-- Cylinder geometry (schematic section) -->
+  <g stroke="#475569" stroke-width="2">
+    <!-- front clevis neck -->
+    <rect x="205" y="435" width="88" height="50" fill="#cbd5e1"/>
+    <!-- head cap -->
+    <rect x="292.4" y="352" width="28.8" height="216" fill="#b6c2d2"/>
+    <!-- tube -->
+    <rect x="321.2" y="360" width="732" height="200" fill="#cbd5e1"/>
+    <!-- bore -->
+    <rect x="329.2" y="376" width="716" height="168" fill="#dde5ee" stroke="none"/>
+    <!-- piston (at stationPistonFace, retracted) -->
+    <rect x="465.2" y="388" width="36" height="144" fill="#b6c2d2" stroke-dasharray="6 4"/>
+    <!-- gland zone -->
+    <rect x="933.2" y="368" width="120" height="184" fill="#9fb0c3"/>
+    <!-- rod (through gland, exposed to spacer) -->
+    <rect x="501.2" y="424" width="666.8" height="72" fill="#c2ccd9"/>
+    <!-- spacer / locknut zone (the 23) -->
+    <rect x="1053.2" y="412" width="55.2" height="96" fill="#b6c2d2"/>
+    <!-- rear clevis neck -->
+    <rect x="1108.4" y="435" width="62" height="50" fill="#cbd5e1"/>
+    <!-- front eye -->
+    <circle cx="170" cy="460" r="62" fill="#cbd5e1"/>
+    <circle cx="170" cy="460" r="28" fill="#ffffff"/>
+    <!-- rear eye -->
+    <circle cx="1230.8" cy="460" r="62" fill="#cbd5e1"/>
+    <circle cx="1230.8" cy="460" r="28" fill="#ffffff"/>
+  </g>
+
+  <!-- Chain dimensions -->
+  <g stroke="#1a202c" stroke-width="1.4">
+    <line x1="170"    y1="700" x2="292.4"  y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="292.4"  y1="700" x2="321.2"  y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="321.2"  y1="700" x2="501.2"  y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="501.2"  y1="700" x2="933.2"  y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="933.2"  y1="700" x2="1053.2" y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="1053.2" y1="700" x2="1108.4" y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+    <line x1="1108.4" y1="700" x2="1230.8" y2="700" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  </g>
+
+  <!-- Chain labels: catalog inputs (plain) -->
+  <g font-size="16" fill="#1a202c" text-anchor="middle">
+    <text x="231.2" y="692">51</text>
+    <text x="306.8" y="676">12</text>
+    <text x="411.2" y="692">75</text>
+    <text x="993.2" y="692">50</text>
+    <text x="1169.6" y="692">51</text>
+  </g>
+
+  <!-- Chain labels: drivers / derived (yellow boxes) -->
+  <!-- extension = 0 at stationPistonFace -->
+  <line x1="501.2" y1="686" x2="501.2" y2="700" stroke="#1a202c" stroke-width="1"/>
+  <rect x="487" y="662" width="28" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="501.2" y="679" font-size="16" text-anchor="middle" fill="#1a202c">0</text>
+  <text x="501.2" y="654" font-size="11" text-anchor="middle" fill="#4a5568">extension (retracted)</text>
+  <!-- stroke = 180 -->
+  <rect x="691.2" y="688" width="52" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="717.2" y="705" font-size="16" text-anchor="middle" fill="#1a202c">180</text>
+  <!-- spacer = 23 -->
+  <rect x="1060.8" y="688" width="40" height="24" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="1080.8" y="705" font-size="16" text-anchor="middle" fill="#1a202c">23</text>
+
+  <!-- Closing dimension: 442 -->
+  <line x1="170" y1="712" x2="170" y2="782" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="1230.8" y1="712" x2="1230.8" y2="782" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="170" y1="770" x2="1230.8" y2="770" stroke="#1a202c" stroke-width="1.4" marker-start="url(#mS)" marker-end="url(#mE)"/>
+  <rect x="668" y="757" width="64" height="26" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="700" y="776" font-size="17" font-weight="bold" text-anchor="middle" fill="#1a202c">442</text>
+  <text x="1258" y="776" font-size="12" fill="#4a5568">closing dimension &#8212; computed, asserted</text>
+
+  <!-- Legend -->
+  <rect x="170" y="804" width="26" height="16" fill="#ffe94d" stroke="#1a202c" stroke-width="1"/>
+  <text x="204" y="817" font-size="13" fill="#1a202c">design driver / derived (parametric)</text>
+  <rect x="470" y="804" width="26" height="16" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
+  <text x="504" y="817" font-size="13" fill="#1a202c">catalog input (standard part)</text>
+  <line x1="750" y1="812" x2="790" y2="812" stroke="#2b6cb0" stroke-width="1.5" stroke-dasharray="14 5 3 5"/>
+  <text x="800" y="817" font-size="13" fill="#1a202c">station plane (KCL Plane derived from stack-up)</text>
+  <text x="170" y="845" font-size="13" font-style="italic" fill="#4a5568">dim::distance anchors to station planes &#8212; re-modeling any part between two stations never moves or breaks the dimension.</text>
+</svg>
