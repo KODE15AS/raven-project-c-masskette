@@ -14,9 +14,12 @@ export pistonZone = 75
 export glandLength = 50
 export rodEyeRear = 51
 
-// --- Design drivers -- yellow in Figure 1 ---
-export stroke = 180
-export extension = 0 // current state: retracted
+// --- Design drivers -- yellow in Figure 1, what the customer picks ---
+// effectiveStroke: the travel the customer actually gets
+// extension (slagforkorter): sleeve in front of the piston face
+// spacer: locknut/spacer zone at the rod exit
+export effectiveStroke = 180
+export extension = 0
 export spacer = 23
 
 // --- Cross-section catalog inputs (diameters) ---
@@ -33,24 +36,29 @@ export glandDia = 90
 export locknutDia = 40
 export pistonWidth = 15
 
+// --- Derived: the physical stroke zone absorbs both drivers ---
+export stroke = effectiveStroke + extension
+
 // --- Derived stations: running sums from the front pin center ---
-// The piston sits at a FIXED station. The extension (slagforkorter) is
-// a sleeve in FRONT of the piston face: it subdivides the stroke zone
-// and reduces the effective stroke -- it does NOT lengthen the chain.
+// The piston sits at a FIXED station. The extension sleeve subdivides
+// the stroke zone: extension first, then the effective stroke.
+export stationEndCap = rodEyeFront
 export stationHead = rodEyeFront + headCap
 export stationPiston = stationHead + pistonZone
 export stationExtension = stationPiston + extension // sleeve end (= piston when 0)
 export stationGland = stationPiston + stroke
-export stationRodExit = stationGland + glandLength + spacer
-export pinToPin = stationRodExit + rodEyeRear
+export stationGlandEnd = stationGland + glandLength // head bush end
+export stationRodExit = stationGlandEnd + spacer
+export pinToPin = stationRodExit + rodEyeRear // OUTPUT of the chain, never typed
 
 // --- Derived part dimensions: custom parts absorb the drivers ---
-export tubeLength = pistonZone + stroke + glandLength // = 305
-export rodLength = stroke + glandLength + spacer // = 253
-export effectiveStroke = stroke - extension // what the cylinder can actually travel
+export tubeLength = pistonZone + stroke + glandLength // = 305 at defaults
+export rodLength = stroke + glandLength + spacer // = 253 at defaults
 
-// --- Closing dimension: computed once, never typed twice ---
-assert(pinToPin, isEqualTo = 442, error = "pin-to-pin drifted from spec (expected 442)")
-assert(stationHead + tubeLength, isEqualTo = stationRodExit - spacer, error = "tube must end where the gland ends")
-assert(stroke, isGreaterThan = 0, error = "stroke must be positive")
-assert(extension, isGreaterThanOrEqual = 0, isLessThanOrEqual = stroke, error = "extension state must be within stroke")
+// --- Audit: internal consistency, not a fixed total ---
+// The audit fails when segments overlap or the geometry contradicts
+// itself. pin-to-pin is a calculated result and is reported, not asserted.
+assert(effectiveStroke, isGreaterThan = 0, error = "segments overlap: extension sleeve fills the whole stroke zone")
+assert(extension, isGreaterThanOrEqual = 0, error = "extension must be non-negative")
+assert(spacer, isGreaterThanOrEqual = 0, error = "spacer must be non-negative")
+assert(stationHead + tubeLength, isEqualTo = stationGlandEnd, error = "tube must end where the head bush ends")

@@ -37,15 +37,15 @@ artifacts/         # verify-report.json, live-report.json, metrics.jsonl, STEP
 docker compose up -d --build live    # -> http://<raven>:8092/
 ```
 
-Figure 1 rendered live in the browser; the yellow driver boxes (stroke,
-extension, spacer) are editable, synced with sliders. Local arithmetic updates
-instantly and is marked **UNVERIFIED** until *Commit → run audit* writes the
-drivers into `kcl/stackup-x.kcl` and compiles the whole project via the Zoo
-API. Three status lamps (FILE / ENGINE / AUDIT), engine latency + retry
-metrics, Zoo API call ID, run history (`artifacts/metrics.jsonl`) and the raw
-verification log make the round trip transparent. "Break the spec" sets
-stroke to 200 so the closing assert fails on api.zoo.dev — the audit verdict
-is the demo.
+Figure 1 rendered live in the browser; the yellow driver boxes (effective
+stroke, extension, spacer) are editable, synced with sliders. Local arithmetic
+updates instantly and is marked **UNVERIFIED** until *Commit → run audit*
+writes the drivers into `kcl/stackup-x.kcl` and compiles the whole project via
+the Zoo API. Pin-to-pin is a calculated output, never typed. Three status
+lamps (FILE / ENGINE / AUDIT), engine latency + retry metrics, Zoo API call
+ID, run history (`artifacts/metrics.jsonl`) and the raw verification log make
+the round trip transparent. "Force overlap" sets the effective stroke to 0 so
+the overlap assert fails on api.zoo.dev — the audit verdict is the demo.
 
 ## How to start / stop
 
@@ -69,9 +69,11 @@ docker compose down             # stop
 `assert`s in `kcl/stackup-x.kcl` passed and a STEP file was exported to `artifacts/export/`.
 The report lands in `artifacts/verify-report.json` and is shown on the status page.
 
-**The demo move:** edit `stroke = 180` to `200` in `kcl/stackup-x.kcl`, re-run verify,
-watch `pin-to-pin drifted from spec` fail the build. Update the spec value in the
-closing assert, re-run, watch it pass. That failure *is* the design review.
+**The demo move:** the customer drivers are `effectiveStroke`, `extension`
+(slagforkorter) and `spacer`; pin-to-pin is always a calculated output.
+Force `effectiveStroke = 0` in `kcl/stackup-x.kcl`, re-run verify, and watch
+the overlap assert (`segments overlap`) fail the build. Restore it and the
+chain is consistent again. That failure *is* the design review.
 
 ## Current step status
 

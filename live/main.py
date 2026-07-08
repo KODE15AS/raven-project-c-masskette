@@ -36,17 +36,17 @@ CATALOG = {
     "rodEyeRear": 51,
 }
 LIMITS = {
-    "stroke": (50, 400),
+    "effectiveStroke": (0, 400),   # 0 is allowed: it trips the overlap assert
     "extension": (0, 400),
     "spacer": (0, 80),
 }
 DRIVER_RE = {
-    "stroke": re.compile(r"(^export stroke = )(\d+)", re.M),
+    "effectiveStroke": re.compile(r"(^export effectiveStroke = )(\d+)", re.M),
     "extension": re.compile(r"(^export extension = )(\d+)", re.M),
     "spacer": re.compile(r"(^export spacer = )(\d+)", re.M),
 }
-SPEC_RE = re.compile(r"(assert\(pinToPin, isEqualTo = )(\d+)")
 FAIL_PATTERNS = [
+    re.compile(r"segments overlap[^\n│╰]*"),
     re.compile(r"[A-Za-z-]+ drifted[^\n│╰]*"),
     re.compile(r"must (?:be|end|stay)[^\n│╰]*"),
     re.compile(r"assert failed[^\n│╰]*"),
@@ -60,9 +60,9 @@ run_lock = threading.Lock()
 
 
 class CommitRequest(BaseModel):
-    """Only the three drivers are writable. The spec (closing assert)
-    is fixed in the KCL and pin-to-pin is always calculated."""
-    stroke: int
+    """The three customer drivers. pin-to-pin is always calculated;
+    the audit checks internal consistency (overlaps), not a fixed total."""
+    effectiveStroke: int
     extension: int
     spacer: int
 
@@ -79,15 +79,12 @@ def read_state() -> dict:
         if not m:
             raise HTTPException(500, f"driver '{key}' not found in stackup-x.kcl")
         drivers[key] = int(m.group(2))
-    spec_m = SPEC_RE.search(text)
-    if not spec_m:
-        raise HTTPException(500, "closing assert not found in stackup-x.kcl")
-    return {"drivers": drivers, "spec": int(spec_m.group(2))}
+    return {"drivers": drivers}
 
 
 def write_drivers(req: CommitRequest) -> None:
     text = STACKUP.read_text()
-    text = DRIVER_RE["stroke"].sub(rf"\g<1>{req.stroke}", text)
+    text = DRIVER_RE["effectiveStroke"].sub(rf"\g<1>{req.effectiveStroke}", text)
     text = DRIVER_RE["extension"].sub(rf"\g<1>{req.extension}", text)
     text = DRIVER_RE["spacer"].sub(rf"\g<1>{req.spacer}", text)
     STACKUP.write_text(text)
@@ -164,7 +161,6 @@ def api_state():
         "catalog": CATALOG,
         "limits": LIMITS,
         "drivers": state["drivers"],
-        "spec": state["spec"],
         "last": last,
         "history": read_metrics(),
     }
@@ -172,13 +168,11 @@ def api_state():
 
 @app.post("/api/commit")
 def api_commit(req: CommitRequest):
-    for key in ("stroke", "extension", "spacer"):
+    for key in ("effectiveStroke", "extension", "spacer"):
         lo, hi = LIMITS[key]
         val = getattr(req, key)
         if not lo <= val <= hi:
             raise HTTPException(422, f"{key}={val} outside allowed range {lo}-{hi}")
-    if req.extension > req.stroke:
-        raise HTTPException(422, "extension cannot exceed stroke")
 
     if not run_lock.acquire(blocking=False):
         raise HTTPException(409, "verification already running")
@@ -190,8 +184,10 @@ def api_commit(req: CommitRequest):
         message = result.get("message", "")
         if result["ok"]:
             verdict, engine, audit = "PASS", "ok", "ok"
-            message = "Masskette closed: all asserts passed, STEP exported."
-        elif "drifted" in message or "must " in message:
+            message = "Masskette consistent: all asserts passed, STEP exported."
+        elif ("assert" in message or "overlap" in message
+              or "drifted" in message or "must " in message):
+            # any assert failure = the audit spoke; the engine itself is fine
             verdict, engine, audit = "FAIL", "ok", "fail"
         else:
             verdict, engine, audit = "ERROR", "fail", "unknown"

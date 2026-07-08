@@ -58,7 +58,7 @@
   .ctl .calc{display:inline-block;font:700 18px var(--mono);color:var(--ink);
              background:var(--panel2);border:1px dashed var(--dim);border-radius:4px;
              padding:2px 10px;margin:4px 0}
-  .ctl .calc.drift{color:var(--red);border-color:var(--red)}
+  .ctl .calc.bad{color:var(--red);border-color:var(--red)}
   .ctl input[type=range]{width:100%;accent-color:var(--orange)}
   .btnrow{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;align-items:center}
   button{font:700 13px Montserrat,sans-serif;letter-spacing:.5px;border:none;
@@ -110,12 +110,13 @@
       <div class="legend">
         <i style="background:#fff"></i>catalog input
         <i style="background:#ffe94d"></i>design driver (editable)
+        <i style="background:#f1f3f6;border-style:dashed"></i>calculated
         <i style="background:#f05025;border-color:#f05025"></i>station plane
         <i style="background:#8f99a6;border-color:#6d7683"></i>extension sleeve
       </div>
       <div class="controls">
-        <div class="ctl"><label>stroke</label><br><span class="val" id="vStroke"></span>
-          <input type="range" id="sStroke" min="50" max="400" step="1"></div>
+        <div class="ctl"><label>effective stroke</label><br><span class="val" id="vEff"></span>
+          <input type="range" id="sEff" min="0" max="400" step="1"></div>
         <div class="ctl"><label>extension (slagforkorter)</label><br><span class="val" id="vExtension"></span>
           <input type="range" id="sExtension" min="0" max="400" step="1"></div>
         <div class="ctl"><label>spacer</label><br><span class="val" id="vSpacer"></span>
@@ -126,7 +127,7 @@
       </div>
       <div class="btnrow">
         <button class="primary" id="btnCommit">COMMIT &rarr; RUN AUDIT</button>
-        <button class="ghost" id="btnBreak">Break the spec (stroke &rarr; 200)</button>
+        <button class="ghost" id="btnBreak">Force overlap (effective stroke &rarr; 0)</button>
         <button class="ghost" id="btnRestore">Restore baseline</button>
         <span id="unverified">&#9650; UNVERIFIED &mdash; local arithmetic only, commit to audit</span>
       </div>
@@ -139,7 +140,7 @@
       <div><span class="verdict" id="verdict">&mdash;</span></div>
       <div id="msg">&mdash;</div>
       <div class="kv"><span>calculated pin-to-pin</span><b id="kPin">&mdash;</b></div>
-      <div class="kv"><span>spec (closing assert in KCL)</span><b id="kSpec">&mdash;</b></div>
+      <div class="kv"><span>stroke zone (effective + extension)</span><b id="kStroke">&mdash;</b></div>
       <div class="kv"><span>tube length (derived)</span><b id="kTube">&mdash;</b></div>
       <div class="kv"><span>rod length (derived)</span><b id="kRod">&mdash;</b></div>
     </div>
@@ -149,12 +150,12 @@
       <div id="spark" style="margin:8px 0"></div>
       <div class="kv"><span>attempts (engine hangup retry)</span><b id="kAtt">&mdash;</b></div>
       <div class="kv"><span>Zoo API call ID</span><b id="kCall" style="font-size:10px">&mdash;</b></div>
-      <div class="facts">4 KCL modules &middot; 4 asserts &middot; deterministic STEP export
+      <div class="facts">4 KCL modules &middot; asserts = the audit &middot; deterministic STEP export
         &middot; api.zoo.dev</div>
     </div>
     <div class="card">
       <h2>Run history</h2>
-      <table><thead><tr><th>time (UTC)</th><th>drivers</th><th>verdict</th><th>ms</th></tr></thead>
+      <table><thead><tr><th>time (UTC)</th><th>eff/ext/spacer</th><th>verdict</th><th>ms</th></tr></thead>
       <tbody id="hist"></tbody></table>
     </div>
     <div class="card">
@@ -166,28 +167,30 @@
 
 <script>
 const CAT = {rodEyeFront:51, headCap:12, pistonZone:75, glandLength:50, rodEyeRear:51};
-const LIM = {stroke:[50,400], extension:[0,400], spacer:[0,80]};
+const LIM = {effectiveStroke:[0,400], extension:[0,400], spacer:[0,80]};
 const $ = id => document.getElementById(id);
-let state = {stroke:180, extension:0, spacer:23};
-let spec = 442;            // closing assert in KCL -- read-only here
+let state = {effectiveStroke:180, extension:0, spacer:23};
 let committed = null;      // last committed drivers, for UNVERIFIED badge
 let running = false;
 
-// The piston sits at a FIXED station. The extension (slagforkorter) is a
-// sleeve in FRONT of the piston face: it subdivides the stroke zone and
-// reduces the effective stroke -- the closing chain does not change.
+// The piston sits at a FIXED station. The customer picks the EFFECTIVE
+// stroke; the extension (slagforkorter) is a sleeve in front of the
+// piston face. The physical stroke zone = effective + extension.
+// pin-to-pin is always an OUTPUT of the chain.
 function chain(s){
-  const stationHead = CAT.rodEyeFront + CAT.headCap;
+  const stroke = s.effectiveStroke + s.extension;
+  const stationEndCap = CAT.rodEyeFront;
+  const stationHead = stationEndCap + CAT.headCap;
   const stationPiston = stationHead + CAT.pistonZone;
   const stationExtension = stationPiston + s.extension; // sleeve end
-  const stationGland = stationPiston + s.stroke;
-  const stationRodExit = stationGland + CAT.glandLength + s.spacer;
+  const stationGland = stationPiston + stroke;
+  const stationGlandEnd = stationGland + CAT.glandLength; // head bush end
+  const stationRodExit = stationGlandEnd + s.spacer;
   const pinToPin = stationRodExit + CAT.rodEyeRear;
-  return {stationHead, stationPiston, stationExtension, stationGland,
-          stationRodExit, pinToPin,
-          effectiveStroke: s.stroke - s.extension,
-          tubeLength: CAT.pistonZone + s.stroke + CAT.glandLength,
-          rodLength: s.stroke + CAT.glandLength + s.spacer};
+  return {stroke, stationEndCap, stationHead, stationPiston, stationExtension,
+          stationGland, stationGlandEnd, stationRodExit, pinToPin,
+          tubeLength: CAT.pistonZone + stroke + CAT.glandLength,
+          rodLength: stroke + CAT.glandLength + s.spacer};
 }
 
 /* ---------- figure ---------- */
@@ -202,17 +205,21 @@ function renderFigure(){
   let g = '';
   const P = (v) => v.toFixed(1);
 
-  // station planes (Cadify orange, dash-dot); extension STA only when > 0
+  // station planes (Cadify orange, dash-dot); labels alternate rows to
+  // stay readable when planes sit close togethe
   const stations = [
-    ['STA 0', 0], ['head', c.stationHead], ['piston', c.stationPiston],
-    ['gland', c.stationGland], ['rod exit', c.stationRodExit], ['pin', c.pinToPin]];
-  if (state.extension > 0) stations.splice(3, 0, ['extension', c.stationExtension]);
-  for (const [lbl, mm] of stations){
+    ['STA 0', 0], ['end cap', c.stationEndCap], ['head', c.stationHead],
+    ['piston', c.stationPiston], ['gland', c.stationGland],
+    ['head bush', c.stationGlandEnd], ['rod exit', c.stationRodExit],
+    ['pin', c.pinToPin]];
+  if (state.extension > 0)
+    stations.splice(4, 0, ['extension', c.stationExtension]);
+  stations.forEach(([lbl, mm], i) => {
     g += `<line x1="${P(X(mm))}" y1="95" x2="${P(X(mm))}" y2="530"
           stroke="#f05025" stroke-width="1.4" stroke-dasharray="10 4 2 4"/>`;
-    g += `<text x="${P(X(mm))}" y="88" font-size="10" text-anchor="middle"
-          fill="#f05025" font-weight="600">${lbl}</text>`;
-  }
+    g += `<text x="${P(X(mm))}" y="${i%2 ? 78 : 90}" font-size="10"
+          text-anchor="middle" fill="#f05025" font-weight="600">${lbl}</text>`;
+  });
 
   // geometry silhouette (neutral grays, ink outlines)
   const ink = '#3E4958';
@@ -227,12 +234,12 @@ function renderFigure(){
              stroke="${ink}" stroke-width="1.2"/>
             <circle cx="${P(X(mm))}" cy="${cy}" r="${P(rh)}" fill="#fff"
              stroke="${ink}" stroke-width="1.2"/>`; };
-  g += rect(20, CAT.rodEyeFront, 50, '#c2c7ce');                        // neck
-  g += rect(CAT.rodEyeFront, c.stationHead, 100, '#aeb6bf');            // endcap
-  // tube: from head station all the way to the END OF THE GLAND ZONE
+  g += rect(20, c.stationEndCap, 50, '#c2c7ce');                        // neck
+  g += rect(c.stationEndCap, c.stationHead, 100, '#aeb6bf');            // end cap
+  // tube: from head station all the way to the END OF THE HEAD BUSH
   g += rect(c.stationHead, c.stationHead + c.tubeLength, 84, '#eceef1');
-  g += rect(c.stationGland, c.stationGland + CAT.glandLength, 90, '#cdd2d8'); // gland colla
-  g += rect(c.stationGland + CAT.glandLength, c.stationRodExit, 40, '#c2c7ce'); // space
+  g += rect(c.stationGland, c.stationGlandEnd, 90, '#cdd2d8');          // head bush colla
+  g += rect(c.stationGlandEnd, c.stationRodExit, 40, '#c2c7ce');        // space
   g += rect(c.stationRodExit, c.pinToPin - 18, 30, '#d9dde2');          // rod neck
   // piston: FIXED at stationPiston (dashed, inside tube)
   g += rect(c.stationPiston - 15, c.stationPiston, 60, 'none', true);
@@ -247,68 +254,56 @@ function renderFigure(){
   g += `<line x1="${P(X0-30)}" y1="${cy}" x2="${P(X1+30)}" y2="${cy}"
         stroke="${ink}" stroke-width="0.7" stroke-dasharray="14 5 3 5"/>`;
 
-  // chain rows: the CLOSING chain is 51+12+75+stroke+50+spacer+51.
-  // The extension is NOT a chain link -- it subdivides the stroke zone.
+  // chain rows. The stroke zone piston->gland is split into the two
+  // customer drivers: extension (sleeve) first, then effective stroke.
+  // Both are yellow editable boxes; there is no derived "stroke" box
+  // in the chain -- it is reported in the side panel instead.
   const segs = [
-    {a:0, b:CAT.rodEyeFront, t:'51'},
-    {a:CAT.rodEyeFront, b:c.stationHead, t:'12'},
+    {a:0, b:c.stationEndCap, t:'51'},
+    {a:c.stationEndCap, b:c.stationHead, t:'12'},
     {a:c.stationHead, b:c.stationPiston, t:'75'},
-    {a:c.stationPiston, b:c.stationGland, key:'stroke'},
-    {a:c.stationGland, b:c.stationGland+CAT.glandLength, t:'50'},
-    {a:c.stationGland+CAT.glandLength, b:c.stationRodExit, key:'spacer'},
+    {a:c.stationExtension, b:c.stationGland, key:'effectiveStroke',
+     lbl:'effective stroke'},
+    {a:c.stationGland, b:c.stationGlandEnd, t:'50'},
+    {a:c.stationGlandEnd, b:c.stationRodExit, key:'spacer'},
     {a:c.stationRodExit, b:c.pinToPin, t:'51'}];
+  if (state.extension > 0)
+    segs.splice(3, 0, {a:c.stationPiston, b:c.stationExtension,
+                       key:'extension', lbl:'extension'});
   overlays.length = 0;
   segs.forEach((s2,i)=>{
     const y = i%2 ? 500 : 465;
     const xa = X(s2.a), xb = X(s2.b), mid = (xa+xb)/2;
     if (xb-xa > 6) g += arrow(xa, xb, y, ink);
-    if (s2.key){ overlays.push({key:s2.key, x:mid, y:y}); }
-    else {
+    if (s2.key){
+      overlays.push({key:s2.key, x:mid, y:y});
+      if (s2.lbl) g += `<text x="${P(mid)}" y="${y-18}" font-size="9"
+            text-anchor="middle" fill="#7b8492">${s2.lbl}</text>`;
+    } else {
       g += `<rect x="${P(mid-19)}" y="${y-12}" width="38" height="22" fill="#fff"
             stroke="${ink}" stroke-width="1"/>
             <text x="${P(mid)}" y="${y+4}" font-size="13" font-weight="600"
             text-anchor="middle" fill="${ink}">${s2.t}</text>`;
     }
   });
-
-  // extension row (above the chain): editable box; when > 0 it gets its
-  // own dimension against the extension STA plus the remaining
-  // effective stroke as a derived value.
-  const yExt = 425;
-  if (state.extension > 0){
-    const xa = X(c.stationPiston), xb = X(c.stationExtension);
-    if (xb-xa > 6) g += arrow(xa, xb, yExt, ink);
-    overlays.push({key:'extension', x:(xa+xb)/2, y:yExt});
-    const xg = X(c.stationGland), me = (xb+xg)/2;
-    g += arrow(xb, xg, yExt, '#7b8492');
-    g += `<rect x="${P(me-26)}" y="${yExt-12}" width="52" height="22"
-          fill="#f1f3f6" stroke="#7b8492" stroke-width="1" stroke-dasharray="4 3"/>
-          <text x="${P(me)}" y="${yExt+4}" font-size="12" font-weight="600"
-          text-anchor="middle" fill="#5a6472">${c.effectiveStroke}</text>
-          <text x="${P(me)}" y="${yExt-16}" font-size="9" text-anchor="middle"
-          fill="#7b8492">effective stroke</text>`;
-    g += `<text x="${P((xa+xb)/2)}" y="${yExt-16}" font-size="9"
-          text-anchor="middle" fill="#3E4958">extension</text>`;
-  } else {
-    overlays.push({key:'extension', x:X(c.stationPiston)+40, y:yExt});
-    g += `<text x="${P(X(c.stationPiston)+40)}" y="${yExt-16}" font-size="9"
+  // extension driver still editable when 0 (parked above the piston STA)
+  if (state.extension === 0){
+    overlays.push({key:'extension', x:X(c.stationPiston)+40, y:425});
+    g += `<text x="${P(X(c.stationPiston)+40)}" y="${425-16}" font-size="9"
           text-anchor="middle" fill="#7b8492">extension (0 = none)</text>`;
   }
 
   // closing dimension: ALWAYS calculated, never typed (hero, gradient frame)
-  const drift = c.pinToPin !== spec;
   const midc = (X(0)+X(c.pinToPin))/2;
   g += arrow(X(0), X(c.pinToPin), 565, ink);
   g += `<rect x="${P(midc-46)}" y="548" width="92" height="32" rx="4"
-        fill="#ffe94d" stroke="${drift ? '#ec2926' : 'url(#cgrad)'}"
-        stroke-width="3"/>
+        fill="#f1f3f6" stroke="url(#cgrad)" stroke-width="3"
+        stroke-dasharray="${ok ? 'none' : '6 3'}"/>
         <text x="${P(midc)}" y="569" font-size="15" font-weight="800"
-        text-anchor="middle" fill="${drift ? '#ec2926' : '#3E4958'}">${c.pinToPin}</text>`;
-  if (drift) g += `<text x="${P(midc+56)}" y="569" font-size="12" font-weight="700"
-        fill="#ec2926">&ne; spec ${spec}</text>`;
+        text-anchor="middle" fill="#3E4958">${c.pinToPin}</text>`;
   g += `<text x="${P(X(0))}" y="600" font-size="11" fill="#5a6472">calculated
-        pin-to-pin = &Sigma; Ma&szlig;kette ${drift ? '(OPEN &mdash; audit will FAIL)'
-        : (ok ? '(closed &amp; verified)' : '(closed locally, unverified)')}</text>`;
+        pin-to-pin = &Sigma; Ma&szlig;kette ${ok ? '(audited &amp; verified)'
+        : '(local arithmetic, unverified)'}</text>`;
 
   // top dim
   g += arrow(X(0), X(c.pinToPin), 50, '#5a6472');
@@ -332,7 +327,7 @@ function arrow(xa, xb, y, col){
 /* ---------- editable overlays on the figure ---------- */
 const overlays = [];
 const ovlEls = {};
-for (const key of ['extension','stroke','spacer']){
+for (const key of ['extension','effectiveStroke','spacer']){
   const el = document.createElement('input');
   el.type = 'number'; el.className = 'ovl'; el.id = 'ovl_' + key;
   el.addEventListener('change', () => {
@@ -358,32 +353,34 @@ function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 function setDriver(key, val){
   const lim = LIM[key];
   state[key] = clamp(isNaN(val) ? lim[0] : val, lim[0], lim[1]);
-  if (state.extension > state.stroke) state.extension = state.stroke;
   syncControls(); renderFigure(); updateBadge();
 }
 function syncControls(){
-  $('sStroke').value = state.stroke;      $('vStroke').textContent = state.stroke;
-  $('sExtension').max = state.stroke;
-  $('sExtension').value = state.extension;$('vExtension').textContent = state.extension;
-  $('sSpacer').value = state.spacer;      $('vSpacer').textContent = state.spacer;
   const c = chain(state);
-  const drift = c.pinToPin !== spec;
+  $('sEff').value = state.effectiveStroke;
+  $('vEff').textContent = state.effectiveStroke;
+  $('sExtension').value = state.extension;
+  $('vExtension').textContent = state.extension;
+  $('sSpacer').value = state.spacer;
+  $('vSpacer').textContent = state.spacer;
+  const bad = state.effectiveStroke <= 0;
   $('vPin').textContent = c.pinToPin + ' mm';
-  $('vPin').className = 'calc' + (drift ? ' drift' : '');
-  $('vPinNote').textContent = drift
-    ? ('spec is ' + spec + ' mm — chain is OPEN') : ('= spec ' + spec + ' mm');
+  $('vPin').className = 'calc' + (bad ? ' bad' : '');
+  $('vPinNote').textContent = bad
+    ? 'segments overlap — audit will FAIL'
+    : 'output of the chain — never typed';
   $('kPin').textContent = c.pinToPin + ' mm';
-  $('kSpec').textContent = spec + ' mm';
+  $('kStroke').textContent = c.stroke + ' mm';
   $('kTube').textContent = c.tubeLength + ' mm';
   $('kRod').textContent = c.rodLength + ' mm';
 }
-$('sStroke').addEventListener('input', e => setDriver('stroke', +e.target.value));
+$('sEff').addEventListener('input', e => setDriver('effectiveStroke', +e.target.value));
 $('sExtension').addEventListener('input', e => setDriver('extension', +e.target.value));
 $('sSpacer').addEventListener('input', e => setDriver('spacer', +e.target.value));
 
 function sameDrivers(a, b){
-  return b && a.stroke===b.stroke && a.extension===b.extension &&
-         a.spacer===b.spacer;
+  return b && a.effectiveStroke===b.effectiveStroke &&
+         a.extension===b.extension && a.spacer===b.spacer;
 }
 function updateBadge(){
   const dirty = !running && committed && !sameDrivers(state, committed.drivers);
@@ -445,11 +442,13 @@ function applyReport(rep, e2e){
 async function loadHistory(){
   const st = await (await fetch('/api/state')).json();
   const rows = (st.history || []).slice().reverse().slice(0, 10);
-  $('hist').innerHTML = rows.map(r =>
-    `<tr><td>${(r.time||'').replace('T',' ').replace('Z','')}</td>
-     <td>${r.drivers.stroke}/${r.drivers.extension}/${r.drivers.spacer}</td>
+  $('hist').innerHTML = rows.map(r => {
+    const d = r.drivers;
+    const eff = d.effectiveStroke !== undefined ? d.effectiveStroke : d.stroke;
+    return `<tr><td>${(r.time||'').replace('T',' ').replace('Z','')}</td>
+     <td>${eff}/${d.extension}/${d.spacer}</td>
      <td><span class="verdict v${r.result}">${r.result}</span></td>
-     <td>${r.latency_ms}</td></tr>`).join('');
+     <td>${r.latency_ms}</td></tr>`; }).join('');
   spark((st.history||[]).map(r => r.latency_ms));
   return st;
 }
@@ -467,10 +466,10 @@ function spark(vals){
 /* ---------- demo buttons ---------- */
 $('btnCommit').addEventListener('click', commit);
 $('btnBreak').addEventListener('click', () => {
-  setDriver('stroke', 200); commit();
+  setDriver('effectiveStroke', 0); commit();
 });
 $('btnRestore').addEventListener('click', () => {
-  state = {stroke:180, extension:0, spacer:23};
+  state = {effectiveStroke:180, extension:0, spacer:23};
   syncControls(); renderFigure(); commit();
 });
 
@@ -479,7 +478,6 @@ $('btnRestore').addEventListener('click', () => {
   try {
     const st = await loadHistory();
     state = {...st.drivers};
-    spec = st.spec;
     if (st.last){
       applyReport(st.last, null);
     }

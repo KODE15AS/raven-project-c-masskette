@@ -2,13 +2,14 @@
 // main.kcl -- TOP-LEVEL ASSEMBLY
 // Imports both sub-assemblies. They compile in isolation and
 // position themselves on the shared stations from stackup-x.kcl.
-// The master chain closes on the asserted pin-to-pin length.
+// pin-to-pin is the calculated OUTPUT of the chain; the audit
+// checks internal consistency (no overlaps), not a fixed total.
 // ============================================================
 @settings(defaultLengthUnit = mm)
 
 import tubeAssembly from "tube.kcl"
 import rodAssembly from "rod.kcl"
-import pinToPin from "stackup-x.kcl"
+import pinToPin, effectiveStroke from "stackup-x.kcl"
 
 // Invoke both sub-assemblies into the scene (no-op transforms force render)
 cylinderTube = tubeAssembly
@@ -16,5 +17,6 @@ cylinderTube = tubeAssembly
 pistonRod = rodAssembly
   |> translate(x = 0, global = true)
 
-// Closing audit at assembly level (also enforced inside stackup-x.kcl)
-assert(pinToPin, isEqualTo = 442, error = "assembly closing dimension drifted")
+// Assembly-level sanity: the chain must physically close
+assert(pinToPin, isGreaterThan = 0, error = "chain arithmetic broke")
+assert(effectiveStroke, isGreaterThan = 0, error = "segments overlap: no effective stroke left")
